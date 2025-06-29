@@ -2,7 +2,8 @@ import axios from "axios";
 import { NewsItem, ApiKeyStatus } from "../types/news";
 
 // NewsAPI kullanarak güvenilir kaynaklardan haber çekme
-const NEWS_API_KEY = "c990a5ee0860494f86d5fa803e2f9084";
+// IMPORTANT: Replace this with your own API key from https://newsapi.org/register
+const NEWS_API_KEY = "YOUR_API_KEY_HERE";
 const BASE_URL = "https://newsapi.org/v2";
 
 // Güvenilir dünya haber kaynakları
@@ -43,14 +44,19 @@ const CATEGORY_MAP: Record<string, string> = {
 };
 
 export function getApiKeyStatus(): ApiKeyStatus {
-  const isDefaultKey = NEWS_API_KEY === "c990a5ee0860494f86d5fa803e2f9084";
+  const isDefaultKey = NEWS_API_KEY === "YOUR_API_KEY_HERE" || NEWS_API_KEY === "c990a5ee0860494f86d5fa803e2f9084";
   return {
     hasCustomKey: !isDefaultKey,
-    isValid: true // Assume valid for now, could be enhanced with actual validation
+    isValid: !isDefaultKey // Only valid if not using default key
   };
 }
 
 export async function fetchNews(): Promise<NewsItem[]> {
+  // Check if API key is set
+  if (NEWS_API_KEY === "YOUR_API_KEY_HERE" || NEWS_API_KEY === "c990a5ee0860494f86d5fa803e2f9084") {
+    throw new Error("API anahtarı ayarlanmamış. Lütfen NewsAPI.org'dan ücretsiz bir API anahtarı alın ve src/api/newsApi.ts dosyasındaki NEWS_API_KEY değerini güncelleyin.");
+  }
+
   try {
     // Güvenilir kaynaklardan genel haberler
     const generalResponse = await axios.get(`${BASE_URL}/top-headlines`, {
@@ -105,8 +111,20 @@ export async function fetchNews(): Promise<NewsItem[]> {
       }))
       .slice(0, 50);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("NewsAPI hatası:", error);
+    
+    // Handle specific error codes
+    if (error.response?.status === 426) {
+      throw new Error("API anahtarı geçersiz veya yükseltme gerekiyor. Lütfen NewsAPI.org'dan geçerli bir API anahtarı alın.");
+    } else if (error.response?.status === 401) {
+      throw new Error("API anahtarı geçersiz. Lütfen NewsAPI.org'dan geçerli bir API anahtarı alın.");
+    } else if (error.response?.status === 429) {
+      throw new Error("API kullanım limiti aşıldı. Lütfen daha sonra tekrar deneyin.");
+    } else if (error.response?.status === 500) {
+      throw new Error("NewsAPI sunucu hatası. Lütfen daha sonra tekrar deneyin.");
+    }
+    
     throw error;
   }
 }
