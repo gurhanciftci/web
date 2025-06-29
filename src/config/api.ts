@@ -5,8 +5,9 @@ export const API_CONFIG = {
   OPENWEATHER_API_KEY: import.meta.env.VITE_OPENWEATHER_API_KEY || '',
   
   // Rate limiting
-  NEWS_REFRESH_INTERVAL: parseInt(import.meta.env.VITE_NEWS_REFRESH_INTERVAL || '300000'),
-  MARKET_REFRESH_INTERVAL: parseInt(import.meta.env.VITE_MARKET_REFRESH_INTERVAL || '60000'),
+  NEWS_REFRESH_INTERVAL: parseInt(import.meta.env.VITE_NEWS_REFRESH_INTERVAL || '900000'),
+  MARKET_REFRESH_INTERVAL: parseInt(import.meta.env.VITE_MARKET_REFRESH_INTERVAL || '300000'),
+  WEATHER_REFRESH_INTERVAL: parseInt(import.meta.env.VITE_WEATHER_REFRESH_INTERVAL || '1800000'),
   
   // API Endpoints
   GUARDIAN_BASE_URL: 'https://content.guardianapis.com',
