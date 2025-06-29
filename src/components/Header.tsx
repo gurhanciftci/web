@@ -25,40 +25,67 @@ export default function Header({ onPageChange, currentPage = 'news', onOpenPrefe
 
         <div className="container mx-auto px-4 py-6 relative z-10">
           <div className="flex items-center justify-between">
-            {/* Logo ve Başlık */}
-            <div className="flex items-center gap-4">
-              <div className="group cursor-pointer" onClick={() => setShowBrandAnalysis(true)}>
-                <EnhancedHulyNewsLogo 
-                  className="w-16 h-16" 
-                  variant="animated" 
-                  showTagline={false}
-                />
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute -bottom-8 left-0 bg-black/75 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-                  Marka analizini görüntüle
+            {/* Enhanced Logo Section */}
+            <div className="flex items-center gap-6">
+              <div className="group cursor-pointer relative" onClick={() => setShowBrandAnalysis(true)}>
+                {/* Logo with enhanced visibility */}
+                <div className="relative">
+                  <EnhancedHulyNewsLogo 
+                    className="w-20 h-20 md:w-24 md:h-24" 
+                    variant="animated" 
+                    showTagline={false}
+                    size="large"
+                  />
+                  
+                  {/* Enhanced glow effect on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
+                  
+                  {/* Pulsing ring effect */}
+                  <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-full animate-ping opacity-0 group-hover:opacity-100"></div>
+                </div>
+                
+                {/* Enhanced tooltip */}
+                <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-black/90 backdrop-blur-sm text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap border border-cyan-400/30 shadow-xl">
+                  <div className="flex items-center gap-2">
+                    <span>🎨</span>
+                    <span>Marka analizini görüntüle</span>
+                  </div>
+                  {/* Tooltip arrow */}
+                  <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-black/90 border-l border-t border-cyan-400/30 rotate-45"></div>
                 </div>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              
+              {/* Enhanced Brand Text */}
+              <div className="hidden sm:block">
+                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-cyan-200 to-blue-200 bg-clip-text text-transparent drop-shadow-lg">
                   Huly News
                 </h1>
-                <p className="text-blue-200 dark:text-gray-300 text-sm mt-1 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1">
-                    🤖 AI Destekli Finans Platformu
-                  </span>
-                  <span className="w-1 h-1 bg-blue-300 rounded-full"></span>
-                  <span className="text-xs opacity-75">Akıllı Finans • Güvenilir Analiz</span>
-                </p>
+                <div className="flex items-center gap-3 mt-2">
+                  <p className="text-blue-200 dark:text-gray-300 text-sm flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1">
+                      🤖 AI Destekli Finans Platformu
+                    </span>
+                    <span className="w-1 h-1 bg-blue-300 rounded-full"></span>
+                    <span className="text-xs opacity-75 font-medium">Akıllı Finans • Güvenilir Analiz</span>
+                  </p>
+                  
+                  {/* Live indicator */}
+                  <div className="flex items-center gap-1 bg-green-500/20 px-2 py-1 rounded-full border border-green-400/30">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-xs text-green-200 font-medium">CANLI</span>
+                  </div>
+                </div>
               </div>
             </div>
             
-            {/* Navigasyon */}
+            {/* Navigation */}
             {onPageChange && (
               <nav className="flex items-center gap-4">
                 <button
                   onClick={() => onPageChange('news')}
                   className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 ${
                     currentPage === 'news'
-                      ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm'
+                      ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
                       : 'text-blue-200 hover:text-white hover:bg-white/10'
                   }`}
                 >
@@ -71,7 +98,7 @@ export default function Header({ onPageChange, currentPage = 'news', onOpenPrefe
                   onClick={() => onPageChange('favorites')}
                   className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 ${
                     currentPage === 'favorites'
-                      ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm'
+                      ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
                       : 'text-blue-200 hover:text-white hover:bg-white/10'
                   }`}
                 >
@@ -84,20 +111,20 @@ export default function Header({ onPageChange, currentPage = 'news', onOpenPrefe
             )}
             
             <div className="flex items-center gap-4">
-              {/* AI Analiz Durumu */}
-              <div className="hidden md:flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
+              {/* AI Status with enhanced visibility */}
+              <div className="hidden md:flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 border border-green-400/30">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-green-200">AI Aktif</span>
+                <span className="text-xs text-green-200 font-medium">AI Aktif</span>
               </div>
 
-              {/* Brand Analysis Button */}
+              {/* Enhanced Brand Analysis Button */}
               <button
                 onClick={() => setShowBrandAnalysis(true)}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 backdrop-blur-sm group"
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 backdrop-blur-sm group border border-white/20 hover:border-cyan-400/50"
                 aria-label="Marka analizi"
                 title="Marka Analizi"
               >
-                <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 group-hover:scale-110 transition-transform text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
                 </svg>
               </button>
@@ -106,7 +133,7 @@ export default function Header({ onPageChange, currentPage = 'news', onOpenPrefe
               {onOpenPreferences && (
                 <button
                   onClick={onOpenPreferences}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 backdrop-blur-sm"
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 backdrop-blur-sm border border-white/20"
                   aria-label="Kullanıcı tercihleri"
                   title="Tercihler (P)"
                 >
@@ -120,7 +147,7 @@ export default function Header({ onPageChange, currentPage = 'news', onOpenPrefe
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 backdrop-blur-sm"
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 backdrop-blur-sm border border-white/20"
                 aria-label="Tema değiştir"
                 title="Tema değiştir (T)"
               >
@@ -135,7 +162,7 @@ export default function Header({ onPageChange, currentPage = 'news', onOpenPrefe
                 )}
               </button>
               
-              {/* Tarih ve Saat */}
+              {/* Enhanced Date and Time */}
               <div className="text-right hidden lg:block">
                 <div className="text-sm text-blue-200 dark:text-gray-300 font-medium">
                   {new Date().toLocaleDateString('tr-TR', {
@@ -156,8 +183,8 @@ export default function Header({ onPageChange, currentPage = 'news', onOpenPrefe
           </div>
         </div>
 
-        {/* Bottom gradient line */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"></div>
+        {/* Enhanced bottom gradient line */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400 shadow-lg"></div>
       </header>
 
       {/* Brand Analysis Modal */}
