@@ -5,8 +5,11 @@ import ShareButtons from "./ShareButtons";
 import FavoriteButton from "./FavoriteButton";
 import TranslationButton from "./TranslationButton";
 import ImageWithFallback from "./ImageWithFallback";
-import SkeletonLoader from "./SkeletonLoader";
+import EnhancedSkeletonLoader from "./EnhancedSkeletonLoader";
+import AdvancedSearch from "./AdvancedSearch";
+import VirtualScrollList from "./VirtualScrollList";
 import { getApiKeyStatus } from "../api/newsApi";
+import { useToast } from "../contexts/ToastContext";
 
 const getImportanceLabel = (importance: number) => {
   if (importance >= 5) return "Çok Önemli";
@@ -43,8 +46,11 @@ export default function NewsList({ news }: NewsListProps) {
   const [favoritesUpdate, setFavoritesUpdate] = useState(0);
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [useVirtualScroll, setUseVirtualScroll] = useState(false);
   
   const apiStatus = getApiKeyStatus();
+  const { showSuccess, showInfo } = useToast();
 
   const categories = [
     { value: "all", label: "Tüm Kategoriler" },
@@ -82,6 +88,148 @@ export default function NewsList({ news }: NewsListProps) {
 
   const handleFavoriteToggle = () => {
     setFavoritesUpdate(prev => prev + 1);
+    showSuccess('Favori Güncellendi', 'Haber favorilerinize eklendi/çıkarıldı');
+  };
+
+  const handleAdvancedSearch = (filters: any) => {
+    setSearchTerm(filters.query);
+    setSelectedCategory(filters.category);
+    setSortBy(filters.sortBy === 'relevance' ? 'importance' : filters.sortBy);
+    showInfo('Arama Uygulandı', 'Gelişmiş arama filtreleri uygulandı');
+  };
+
+  const renderNewsItem = (item: NewsItem, index: number) => {
+    const translation = translations[item.url];
+    const displayTitle = translation?.title || item.title;
+    const displayDescription = translation?.description || item.description;
+    const imageKey = `${item.url}-${index}`;
+
+    return (
+      <article key={item.id || index} className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700 group">
+        <div className="p-4">
+          <div className="flex items-start gap-4">
+            {/* Optimized Image Component */}
+            <div className="relative flex-shrink-0">
+              <div 
+                className="relative"
+                onMouseEnter={() => item.imageUrl && setHoveredImage(imageKey)}
+                onMouseLeave={() => setHoveredImage(null)}
+              >
+                <ImageWithFallback
+                  src={item.imageUrl}
+                  alt={item.title}
+                  className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:scale-110 transition-transform duration-200"
+                  fallbackClassName="w-16 h-16 rounded-lg"
+                />
+                
+                {/* Enhanced Hover Preview */}
+                {hoveredImage === imageKey && item.imageUrl && (
+                  <div className="absolute z-50 left-20 top-0 pointer-events-none">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-300 dark:border-gray-600 p-2 transform transition-all duration-200 animate-in fade-in zoom-in-95">
+                      <ImageWithFallback
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-64 h-40 object-cover rounded-lg"
+                        fallbackClassName="w-64 h-40 rounded-lg"
+                      />
+                      <div className="mt-2 p-2">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                          {displayTitle}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Haber İçeriği */}
+            <div className="flex-1 min-w-0">
+              {/* Enhanced Tags */}
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)} transition-colors`}>
+                  {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                </span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getImportanceColor(item.importance)} transition-colors`}>
+                  {getImportanceLabel(item.importance)}
+                </span>
+                {item.source && (
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 transition-colors">
+                    {item.source}
+                  </span>
+                )}
+                {translation && (
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 transition-colors">
+                    Çevrildi
+                  </span>
+                )}
+                {item.imageUrl && (
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 transition-colors">
+                    📷 Resimli
+                  </span>
+                )}
+                {item.publishedAt && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
+                    {new Date(item.publishedAt).toLocaleDateString('tr-TR', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                )}
+              </div>
+              
+              {/* Enhanced Title */}
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                <a href={item.url} target="_blank" rel="noopener noreferrer">
+                  {displayTitle}
+                </a>
+              </h2>
+              
+              {/* Enhanced Description */}
+              {displayDescription && (
+                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-3 line-clamp-2">
+                  {displayDescription.length > 150 
+                    ? `${displayDescription.substring(0, 150)}...` 
+                    : displayDescription
+                  }
+                </p>
+              )}
+              
+              {/* Enhanced Actions */}
+              <div className="flex items-center justify-between">
+                <a 
+                  href={item.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm transition-colors group-hover:text-blue-700"
+                >
+                  Haberi Oku
+                  <svg className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+                
+                <div className="flex items-center gap-2">
+                  <FavoriteButton 
+                    newsItem={item} 
+                    onToggle={handleFavoriteToggle}
+                  />
+                  <TranslationButton
+                    newsItem={item}
+                    onTranslate={(translation) => handleTranslation(item.url, translation)}
+                    isTranslated={!!translation}
+                  />
+                  <ShareButtons title={displayTitle} url={item.url} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    );
   };
 
   if (news.length === 0 && !isLoading) {
@@ -113,9 +261,9 @@ export default function NewsList({ news }: NewsListProps) {
         </div>
       )}
 
-      {/* Arama ve Filtreler */}
+      {/* Enhanced Search and Filters */}
       <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-1">
             <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
           </div>
@@ -144,157 +292,53 @@ export default function NewsList({ news }: NewsListProps) {
               <option value="date">Tarih</option>
             </select>
           </div>
+          <div className="flex items-end gap-2">
+            <button
+              onClick={() => setShowAdvancedSearch(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+              </svg>
+              Gelişmiş
+            </button>
+            <button
+              onClick={() => setUseVirtualScroll(!useVirtualScroll)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                useVirtualScroll 
+                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-gray-200'
+              }`}
+              title="Sanal kaydırma (büyük listeler için)"
+            >
+              {useVirtualScroll ? '📜 Sanal' : '📄 Normal'}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Loading Skeletons */}
       {isLoading && (
-        <div className="space-y-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border border-gray-200 dark:border-gray-700">
-              <SkeletonLoader />
-            </div>
-          ))}
-        </div>
+        <EnhancedSkeletonLoader variant="news-card" count={5} />
       )}
 
-      {/* Haber Listesi */}
+      {/* News List */}
       {!isLoading && (
-        <div className="space-y-4">
-          {filteredNews.map((item, i) => {
-            const translation = translations[item.url];
-            const displayTitle = translation?.title || item.title;
-            const displayDescription = translation?.description || item.description;
-            const imageKey = `${item.url}-${i}`;
-
-            return (
-              <article key={item.id || i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700 group">
-                <div className="p-4">
-                  <div className="flex items-start gap-4">
-                    {/* Optimized Image Component */}
-                    <div className="relative flex-shrink-0">
-                      <div 
-                        className="relative"
-                        onMouseEnter={() => item.imageUrl && setHoveredImage(imageKey)}
-                        onMouseLeave={() => setHoveredImage(null)}
-                      >
-                        <ImageWithFallback
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:scale-110 transition-transform duration-200"
-                          fallbackClassName="w-16 h-16 rounded-lg"
-                        />
-                        
-                        {/* Enhanced Hover Preview */}
-                        {hoveredImage === imageKey && item.imageUrl && (
-                          <div className="absolute z-50 left-20 top-0 pointer-events-none">
-                            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-300 dark:border-gray-600 p-2 transform transition-all duration-200 animate-in fade-in zoom-in-95">
-                              <ImageWithFallback
-                                src={item.imageUrl}
-                                alt={item.title}
-                                className="w-64 h-40 object-cover rounded-lg"
-                                fallbackClassName="w-64 h-40 rounded-lg"
-                              />
-                              <div className="mt-2 p-2">
-                                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                                  {displayTitle}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Haber İçeriği */}
-                    <div className="flex-1 min-w-0">
-                      {/* Enhanced Tags */}
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)} transition-colors`}>
-                          {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-                        </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getImportanceColor(item.importance)} transition-colors`}>
-                          {getImportanceLabel(item.importance)}
-                        </span>
-                        {item.source && (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 transition-colors">
-                            {item.source}
-                          </span>
-                        )}
-                        {translation && (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 transition-colors">
-                            Çevrildi
-                          </span>
-                        )}
-                        {item.imageUrl && (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 transition-colors">
-                            📷 Resimli
-                          </span>
-                        )}
-                        {item.publishedAt && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
-                            {new Date(item.publishedAt).toLocaleDateString('tr-TR', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* Enhanced Title */}
-                      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                        <a href={item.url} target="_blank" rel="noopener noreferrer">
-                          {displayTitle}
-                        </a>
-                      </h2>
-                      
-                      {/* Enhanced Description */}
-                      {displayDescription && (
-                        <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-3 line-clamp-2">
-                          {displayDescription.length > 150 
-                            ? `${displayDescription.substring(0, 150)}...` 
-                            : displayDescription
-                          }
-                        </p>
-                      )}
-                      
-                      {/* Enhanced Actions */}
-                      <div className="flex items-center justify-between">
-                        <a 
-                          href={item.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm transition-colors group-hover:text-blue-700"
-                        >
-                          Haberi Oku
-                          <svg className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
-                        
-                        <div className="flex items-center gap-2">
-                          <FavoriteButton 
-                            newsItem={item} 
-                            onToggle={handleFavoriteToggle}
-                          />
-                          <TranslationButton
-                            newsItem={item}
-                            onTranslate={(translation) => handleTranslation(item.url, translation)}
-                            isTranslated={!!translation}
-                          />
-                          <ShareButtons title={displayTitle} url={item.url} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        <>
+          {useVirtualScroll && filteredNews.length > 20 ? (
+            <VirtualScrollList
+              items={filteredNews}
+              itemHeight={200}
+              containerHeight={800}
+              renderItem={renderNewsItem}
+              className="border border-gray-200 dark:border-gray-700 rounded-lg"
+            />
+          ) : (
+            <div className="space-y-4">
+              {filteredNews.map((item, i) => renderNewsItem(item, i))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Enhanced Empty State */}
@@ -315,6 +359,18 @@ export default function NewsList({ news }: NewsListProps) {
           )}
         </div>
       )}
+
+      {/* Advanced Search Modal */}
+      <AdvancedSearch
+        isOpen={showAdvancedSearch}
+        onClose={() => setShowAdvancedSearch(false)}
+        onSearch={handleAdvancedSearch}
+        initialFilters={{
+          query: searchTerm,
+          category: selectedCategory,
+          sortBy: sortBy === 'importance' ? 'importance' : 'date'
+        }}
+      />
     </div>
   );
 }
