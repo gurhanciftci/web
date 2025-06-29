@@ -42,23 +42,13 @@ const CATEGORY_MAP: Record<string, string> = {
   science: "dünya"
 };
 
-// API key kontrolü
-function checkApiKey(): boolean {
-  return NEWS_API_KEY && NEWS_API_KEY !== "YOUR_NEWS_API_KEY_HERE";
-}
-
 export async function fetchNews(): Promise<NewsItem[]> {
-  if (!checkApiKey()) {
-    console.error("NewsAPI key bulunamadı. Lütfen src/api/newsApi.ts dosyasında NEWS_API_KEY değişkenini güncelleyin.");
-    return getMockNews(); // API key yoksa örnek haberler döndür
-  }
-
   try {
     // Güvenilir kaynaklardan genel haberler
     const generalResponse = await axios.get(`${BASE_URL}/top-headlines`, {
       params: {
         apiKey: NEWS_API_KEY,
-        sources: RELIABLE_SOURCES.slice(0, 10).join(','), // İlk 10 kaynağı kullan
+        sources: RELIABLE_SOURCES.slice(0, 10).join(','),
         pageSize: 20,
         language: 'en'
       }
@@ -105,11 +95,11 @@ export async function fetchNews(): Promise<NewsItem[]> {
         imageUrl: article.urlToImage,
         source: article.source?.name || 'Unknown'
       }))
-      .slice(0, 50); // En fazla 50 haber göster
+      .slice(0, 50);
 
   } catch (error) {
     console.error("NewsAPI hatası:", error);
-    return getMockNews(); // Hata durumunda örnek haberler döndür
+    throw error;
   }
 }
 
@@ -163,48 +153,4 @@ function getImportanceScore(article: any): number {
   }
   
   return sourceScore;
-}
-
-// API key yoksa gösterilecek örnek haberler
-function getMockNews(): NewsItem[] {
-  return [
-    {
-      title: "NewsAPI Key Gerekli",
-      description: "Gerçek haberleri görmek için NewsAPI key'inizi src/api/newsApi.ts dosyasında NEWS_API_KEY değişkenine ekleyin. NewsAPI.org'dan ücretsiz key alabilirsiniz.",
-      url: "https://newsapi.org/register",
-      category: "dünya",
-      importance: 5,
-      publishedAt: new Date().toISOString(),
-      source: "System"
-    },
-    {
-      title: "Güvenilir Haber Kaynakları",
-      description: "Bu uygulama BBC, CNN, Reuters, Bloomberg, Financial Times gibi güvenilir kaynaklardan haber çeker. API key ekledikten sonra gerçek haberler görünecektir.",
-      url: "https://newsapi.org/docs",
-      category: "dünya",
-      importance: 4,
-      publishedAt: new Date().toISOString(),
-      source: "System"
-    },
-    {
-      title: "API Key Nasıl Alınır?",
-      description: "1. NewsAPI.org'a gidin 2. Ücretsiz hesap oluşturun 3. API key'inizi alın 4. src/api/newsApi.ts dosyasında NEWS_API_KEY değişkenini güncelleyin",
-      url: "https://newsapi.org/register",
-      category: "dünya",
-      importance: 3,
-      publishedAt: new Date().toISOString(),
-      source: "System"
-    }
-  ];
-}
-
-// API key durumunu kontrol etmek için yardımcı fonksiyon
-export function getApiKeyStatus(): { hasKey: boolean; message: string } {
-  const hasKey = checkApiKey();
-  return {
-    hasKey,
-    message: hasKey 
-      ? "NewsAPI bağlantısı aktif" 
-      : "NewsAPI key gerekli - lütfen src/api/newsApi.ts dosyasını güncelleyin"
-  };
 }
