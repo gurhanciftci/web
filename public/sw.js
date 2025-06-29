@@ -47,6 +47,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Sadece belirli dosya tiplerini cache'e al
+  if (!request.url.endsWith('.js') && !request.url.endsWith('.css') && !request.url.endsWith('.png') && !request.url.endsWith('.jpg') && request.destination !== 'document') {
+    return fetch(request);
+  }
+  
   event.respondWith(
     caches.match(request)
       .then(cachedResponse => {
