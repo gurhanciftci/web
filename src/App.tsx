@@ -6,6 +6,7 @@ import NewsList from "./components/NewsList";
 import FavoritesPage from "./components/FavoritesPage";
 import LoadingSpinner from "./components/LoadingSpinner";
 import ErrorMessage from "./components/ErrorMessage";
+import FloatingClock from "./components/FloatingClock";
 import { fetchNews } from "./api/newsApi";
 import { NewsItem } from "./types/news";
 
@@ -43,6 +44,9 @@ function AppContent() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <Header onPageChange={setCurrentPage} currentPage={currentPage} />
       {currentPage === 'news' && <TickerBar />}
+      
+      {/* Sabit Saat */}
+      <FloatingClock />
       
       <main>
         {currentPage === 'news' ? (
