@@ -39,6 +39,7 @@ export default function NewsList({ news }: NewsListProps) {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [translations, setTranslations] = useState<Record<string, TranslatedContent>>({});
   const [favoritesUpdate, setFavoritesUpdate] = useState(0);
+  const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   
   const apiStatus = getApiKeyStatus();
 
@@ -144,97 +145,136 @@ export default function NewsList({ news }: NewsListProps) {
       </div>
 
       {/* Haber Listesi */}
-      <div className="grid gap-6">
+      <div className="space-y-4">
         {filteredNews.map((item, i) => {
           const translation = translations[item.url];
           const displayTitle = translation?.title || item.title;
           const displayDescription = translation?.description || item.description;
+          const imageKey = `${item.url}-${i}`;
 
           return (
-            <article key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-              {item.imageUrl && (
-                <div className="aspect-video w-full overflow-hidden">
-                  <img 
-                    src={item.imageUrl} 
-                    alt={item.title}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-              <div className="p-6">
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
-                    {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getImportanceColor(item.importance)}`}>
-                    {getImportanceLabel(item.importance)}
-                  </span>
-                  {item.source && (
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                      {item.source}
-                    </span>
-                  )}
-                  {translation && (
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                      Çevrildi
-                    </span>
-                  )}
-                  {item.publishedAt && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
-                      {new Date(item.publishedAt).toLocaleDateString('tr-TR', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  )}
-                </div>
-                
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 leading-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    {displayTitle}
-                  </a>
-                </h2>
-                
-                {displayDescription && (
-                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
-                    {displayDescription.length > 200 
-                      ? `${displayDescription.substring(0, 200)}...` 
-                      : displayDescription
-                    }
-                  </p>
-                )}
-                
-                <div className="flex items-center justify-between">
-                  <a 
-                    href={item.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm transition-colors"
-                  >
-                    Haberi Oku
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                  
-                  <div className="flex items-center gap-2">
-                    <FavoriteButton 
-                      newsItem={item} 
-                      onToggle={handleFavoriteToggle}
-                    />
-                    <TranslationButton
-                      newsItem={item}
-                      onTranslate={(translation) => handleTranslation(item.url, translation)}
-                      isTranslated={!!translation}
-                    />
-                    <ShareButtons title={displayTitle} url={item.url} />
+            <article key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700">
+              <div className="p-4">
+                <div className="flex items-start gap-4">
+                  {/* Küçük Önizleme Resmi */}
+                  <div className="relative flex-shrink-0">
+                    {item.imageUrl ? (
+                      <div 
+                        className="relative"
+                        onMouseEnter={() => setHoveredImage(imageKey)}
+                        onMouseLeave={() => setHoveredImage(null)}
+                      >
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.title}
+                          className="w-16 h-16 object-cover rounded-lg cursor-pointer transition-transform duration-200 hover:scale-110"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                        
+                        {/* Hover Önizleme */}
+                        {hoveredImage === imageKey && (
+                          <div className="absolute z-50 left-20 top-0 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-300 dark:border-gray-600 p-2 transform transition-all duration-200">
+                            <img 
+                              src={item.imageUrl} 
+                              alt={item.title}
+                              className="w-64 h-40 object-cover rounded-lg"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Haber İçeriği */}
+                  <div className="flex-1 min-w-0">
+                    {/* Etiketler */}
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
+                        {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getImportanceColor(item.importance)}`}>
+                        {getImportanceLabel(item.importance)}
+                      </span>
+                      {item.source && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                          {item.source}
+                        </span>
+                      )}
+                      {translation && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                          Çevrildi
+                        </span>
+                      )}
+                      {item.publishedAt && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
+                          {new Date(item.publishedAt).toLocaleDateString('tr-TR', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Başlık */}
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      <a href={item.url} target="_blank" rel="noopener noreferrer">
+                        {displayTitle}
+                      </a>
+                    </h2>
+                    
+                    {/* Açıklama */}
+                    {displayDescription && (
+                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-3 line-clamp-2">
+                        {displayDescription.length > 150 
+                          ? `${displayDescription.substring(0, 150)}...` 
+                          : displayDescription
+                        }
+                      </p>
+                    )}
+                    
+                    {/* Aksiyonlar */}
+                    <div className="flex items-center justify-between">
+                      <a 
+                        href={item.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm transition-colors"
+                      >
+                        Haberi Oku
+                        <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                      
+                      <div className="flex items-center gap-2">
+                        <FavoriteButton 
+                          newsItem={item} 
+                          onToggle={handleFavoriteToggle}
+                        />
+                        <TranslationButton
+                          newsItem={item}
+                          onTranslate={(translation) => handleTranslation(item.url, translation)}
+                          isTranslated={!!translation}
+                        />
+                        <ShareButtons title={displayTitle} url={item.url} />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
