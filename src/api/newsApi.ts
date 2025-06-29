@@ -1,30 +1,28 @@
 import axios from "axios";
 import { NewsItem, ApiKeyStatus } from "../types/news";
 
-// GNews API - Ücretsiz günlük 100 istek
-// https://gnews.io/ adresinden ücretsiz API key alabilirsiniz
-const GNEWS_API_KEY = "8d769ac11bd5613228512c93495af650";
-const GNEWS_BASE_URL = "https://gnews.io/api/v4";
-
-// Aktif API seçimi
-const ACTIVE_API = "gnews";
+// Guardian API - Ücretsiz günlük 5000 istek
+// https://open-platform.theguardian.com/access/ adresinden ücretsiz API key alabilirsiniz
+const GUARDIAN_API_KEY = "079580be-8193-46b9-91ed-97794bf9317f";
+const GUARDIAN_BASE_URL = "https://content.guardianapis.com";
 
 const CATEGORY_MAP: Record<string, string> = {
-  general: "dünya",
   world: "dünya",
   politics: "siyaset",
   business: "finans",
-  finance: "finans",
-  economy: "finans",
+  money: "finans",
+  economics: "finans",
   technology: "dünya",
-  health: "dünya",
-  sports: "dünya",
-  entertainment: "dünya",
-  science: "dünya"
+  science: "dünya",
+  environment: "dünya",
+  sport: "dünya",
+  culture: "dünya",
+  lifeandstyle: "dünya",
+  commentisfree: "dünya"
 };
 
 export function getApiKeyStatus(): ApiKeyStatus {
-  const hasValidKey = GNEWS_API_KEY !== "YOUR_GNEWS_API_KEY_HERE";
+  const hasValidKey = GUARDIAN_API_KEY !== "YOUR_GUARDIAN_API_KEY_HERE";
   
   return {
     hasCustomKey: hasValidKey,
@@ -33,67 +31,65 @@ export function getApiKeyStatus(): ApiKeyStatus {
 }
 
 export async function fetchNews(): Promise<NewsItem[]> {
-  return fetchFromGNews();
+  return fetchFromGuardian();
 }
 
-// GNews API (Günlük 100 ücretsiz istek)
-async function fetchFromGNews(): Promise<NewsItem[]> {
+// Guardian API (Günlük 5000 ücretsiz istek)
+async function fetchFromGuardian(): Promise<NewsItem[]> {
   try {
-    const response = await axios.get(`${GNEWS_BASE_URL}/top-headlines`, {
+    const response = await axios.get(`${GUARDIAN_BASE_URL}/search`, {
       params: {
-        token: GNEWS_API_KEY,
-        lang: "en",
-        country: "us",
-        max: 50
+        'api-key': GUARDIAN_API_KEY,
+        'show-fields': 'headline,trailText,thumbnail,short-url',
+        'show-tags': 'contributor',
+        'order-by': 'newest',
+        'page-size': 50,
+        'q': 'NOT sport', // Spor haberlerini filtrele
+        'section': 'world|politics|business|technology|science|environment'
       }
     });
 
-    if (!response.data.articles) {
+    if (!response.data.response?.results) {
       throw new Error("API'den haber verisi alınamadı");
     }
 
-    return response.data.articles.map((article: any) => ({
-      title: article.title || "Başlık bulunamadı",
-      description: article.description || "Açıklama bulunamadı",
-      url: article.url || "#",
-      category: getCategoryFromContent(article.title, article.description),
-      importance: getImportanceScore(article.title, article.description),
-      publishedAt: article.publishedAt,
-      imageUrl: article.image,
-      source: article.source?.name || "GNews"
+    return response.data.response.results.map((article: any) => ({
+      title: article.fields?.headline || article.webTitle || "Başlık bulunamadı",
+      description: article.fields?.trailText || "Açıklama bulunamadı",
+      url: article.fields?.shortUrl || article.webUrl || "#",
+      category: getCategoryFromSection(article.sectionId),
+      importance: getImportanceScore(article.fields?.headline || article.webTitle, article.fields?.trailText || ""),
+      publishedAt: article.webPublicationDate,
+      imageUrl: article.fields?.thumbnail,
+      source: "The Guardian"
     }));
   } catch (error: any) {
-    console.error("GNews API hatası:", error);
+    console.error("Guardian API hatası:", error);
     
     if (error.response?.status === 401) {
-      throw new Error("API anahtarı geçersiz. Lütfen GNews API anahtarınızı kontrol edin.");
+      throw new Error("API anahtarı geçersiz. Lütfen Guardian API anahtarınızı kontrol edin.");
     }
     if (error.response?.status === 429) {
-      throw new Error("API limit aşıldı. Günlük 100 istek limitiniz dolmuş.");
+      throw new Error("API limit aşıldı. Günlük 5000 istek limitiniz dolmuş.");
+    }
+    if (error.response?.status === 403) {
+      throw new Error("API erişimi reddedildi. API anahtarınızın geçerli olduğundan emin olun.");
     }
     
     throw new Error("Haberler yüklenirken hata oluştu. Lütfen daha sonra tekrar deneyin.");
   }
 }
 
-function getCategoryFromContent(title: string, description: string): string {
-  const content = `${title} ${description}`.toLowerCase();
-  
-  if (content.includes('politic') || content.includes('government') || content.includes('election')) {
-    return "siyaset";
-  }
-  if (content.includes('business') || content.includes('economy') || content.includes('market') || content.includes('finance')) {
-    return "finans";
-  }
-  return "dünya";
+function getCategoryFromSection(sectionId: string): string {
+  return CATEGORY_MAP[sectionId] || "dünya";
 }
 
 function getImportanceScore(title: string, description: string): number {
   const content = `${title} ${description}`.toLowerCase();
   
-  const criticalKeywords = ['breaking', 'urgent', 'crisis', 'emergency', 'war', 'attack', 'disaster'];
-  const importantKeywords = ['major', 'significant', 'important', 'critical', 'election', 'president'];
-  const moderateKeywords = ['new', 'report', 'study', 'announce'];
+  const criticalKeywords = ['breaking', 'urgent', 'crisis', 'emergency', 'war', 'attack', 'disaster', 'death', 'killed'];
+  const importantKeywords = ['major', 'significant', 'important', 'critical', 'election', 'president', 'minister', 'government'];
+  const moderateKeywords = ['new', 'report', 'study', 'announce', 'reveals', 'investigation'];
   
   if (criticalKeywords.some(keyword => content.includes(keyword))) {
     return 5;
