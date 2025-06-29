@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { NewsItem } from "../types/news";
 import SearchBar from "./SearchBar";
 import ShareButtons from "./ShareButtons";
+import { getApiKeyStatus } from "../api/newsApi";
 
 const getImportanceLabel = (importance: number) => {
   if (importance >= 5) return "Çok Önemli";
@@ -34,6 +35,8 @@ export default function NewsList({ news }: NewsListProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"importance" | "date">("importance");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  
+  const apiStatus = getApiKeyStatus();
 
   const categories = [
     { value: "all", label: "Tüm Kategoriler" },
@@ -71,6 +74,21 @@ export default function NewsList({ news }: NewsListProps) {
 
   return (
     <div className="container mx-auto px-4 py-6">
+      {/* API Key Durumu */}
+      {!apiStatus.hasKey && (
+        <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="text-yellow-600 dark:text-yellow-400 text-2xl mr-3">⚠️</div>
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300">API Key Gerekli</h3>
+              <p className="text-yellow-700 dark:text-yellow-400 text-sm">
+                Gerçek haberleri görmek için <a href="https://newsapi.org/register" target="_blank" rel="noopener noreferrer" className="underline font-medium">NewsAPI.org</a>'dan ücretsiz API key alın ve src/api/newsApi.ts dosyasında NEWS_API_KEY değişkenini güncelleyin.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Arama ve Filtreler */}
       <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -109,6 +127,19 @@ export default function NewsList({ news }: NewsListProps) {
       <div className="grid gap-6">
         {filteredNews.map((item, i) => (
           <article key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+            {item.imageUrl && (
+              <div className="aspect-video w-full overflow-hidden">
+                <img 
+                  src={item.imageUrl} 
+                  alt={item.title}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
             <div className="p-6">
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
@@ -117,9 +148,20 @@ export default function NewsList({ news }: NewsListProps) {
                 <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getImportanceColor(item.importance)}`}>
                   {getImportanceLabel(item.importance)}
                 </span>
+                {item.source && (
+                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                    {item.source}
+                  </span>
+                )}
                 {item.publishedAt && (
                   <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
-                    {new Date(item.publishedAt).toLocaleDateString('tr-TR')}
+                    {new Date(item.publishedAt).toLocaleDateString('tr-TR', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </span>
                 )}
               </div>

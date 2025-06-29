@@ -6,6 +6,7 @@ export interface NewsItem {
   importance: number;
   publishedAt?: string;
   imageUrl?: string;
+  source?: string; // Haber kaynağı bilgisi eklendi
 }
 
 export interface MarketData {
@@ -14,4 +15,9 @@ export interface MarketData {
   price: string;
   change?: string;
   changePercent?: string;
+}
+
+export interface ApiKeyStatus {
+  hasKey: boolean;
+  message: string;
 }
