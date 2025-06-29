@@ -1,33 +1,23 @@
 import axios from "axios";
 import { NewsItem, ApiKeyStatus } from "../types/news";
 
-// NewsAPI kullanarak güvenilir kaynaklardan haber çekme
-// IMPORTANT: Replace this with your own API key from https://newsapi.org/register
-const NEWS_API_KEY = "YOUR_API_KEY_HERE";
-const BASE_URL = "https://newsapi.org/v2";
+// GNews API - Ücretsiz günlük 100 istek
+// https://gnews.io/ adresinden ücretsiz API key alabilirsiniz
+const GNEWS_API_KEY = "YOUR_GNEWS_API_KEY_HERE";
+const GNEWS_BASE_URL = "https://gnews.io/api/v4";
 
-// Güvenilir dünya haber kaynakları
-const RELIABLE_SOURCES = [
-  'bbc-news',
-  'cnn',
-  'reuters',
-  'associated-press',
-  'the-guardian-uk',
-  'the-new-york-times',
-  'the-washington-post',
-  'bloomberg',
-  'financial-times',
-  'al-jazeera-english',
-  'abc-news',
-  'cbs-news',
-  'nbc-news',
-  'fox-news',
-  'usa-today',
-  'time',
-  'newsweek',
-  'the-economist',
-  'wall-street-journal'
-];
+// The Guardian API - Tamamen ücretsiz
+// https://open-platform.theguardian.com/access/ adresinden ücretsiz API key alabilirsiniz
+const GUARDIAN_API_KEY = "YOUR_GUARDIAN_API_KEY_HERE";
+const GUARDIAN_BASE_URL = "https://content.guardianapis.com";
+
+// Currents API - Günlük 600 ücretsiz istek
+// https://currentsapi.services/en adresinden ücretsiz API key alabilirsiniz
+const CURRENTS_API_KEY = "YOUR_CURRENTS_API_KEY_HERE";
+const CURRENTS_BASE_URL = "https://api.currentsapi.services/v1";
+
+// Aktif API seçimi (değiştirilebilir)
+const ACTIVE_API = "guardian"; // "gnews", "guardian", "currents" veya "rss"
 
 const CATEGORY_MAP: Record<string, string> = {
   general: "dünya",
@@ -44,139 +34,226 @@ const CATEGORY_MAP: Record<string, string> = {
 };
 
 export function getApiKeyStatus(): ApiKeyStatus {
-  const isDefaultKey = NEWS_API_KEY === "YOUR_API_KEY_HERE" || NEWS_API_KEY === "c990a5ee0860494f86d5fa803e2f9084";
+  let hasValidKey = false;
+  
+  switch (ACTIVE_API) {
+    case "gnews":
+      hasValidKey = GNEWS_API_KEY !== "YOUR_GNEWS_API_KEY_HERE";
+      break;
+    case "guardian":
+      hasValidKey = GUARDIAN_API_KEY !== "YOUR_GUARDIAN_API_KEY_HERE";
+      break;
+    case "currents":
+      hasValidKey = CURRENTS_API_KEY !== "YOUR_CURRENTS_API_KEY_HERE";
+      break;
+    case "rss":
+      hasValidKey = true; // RSS için API key gerekmez
+      break;
+  }
+  
   return {
-    hasCustomKey: !isDefaultKey,
-    isValid: !isDefaultKey // Only valid if not using default key
+    hasCustomKey: hasValidKey,
+    isValid: hasValidKey
   };
 }
 
 export async function fetchNews(): Promise<NewsItem[]> {
-  // Check if API key is set
-  if (NEWS_API_KEY === "YOUR_API_KEY_HERE" || NEWS_API_KEY === "c990a5ee0860494f86d5fa803e2f9084") {
-    throw new Error("API anahtarı ayarlanmamış. Lütfen NewsAPI.org'dan ücretsiz bir API anahtarı alın ve src/api/newsApi.ts dosyasındaki NEWS_API_KEY değerini güncelleyin.");
+  switch (ACTIVE_API) {
+    case "gnews":
+      return fetchFromGNews();
+    case "guardian":
+      return fetchFromGuardian();
+    case "currents":
+      return fetchFromCurrents();
+    case "rss":
+      return fetchFromRSS();
+    default:
+      return fetchFromRSS(); // Fallback to RSS
+  }
+}
+
+// GNews API (Günlük 100 ücretsiz istek)
+async function fetchFromGNews(): Promise<NewsItem[]> {
+  if (GNEWS_API_KEY === "YOUR_GNEWS_API_KEY_HERE") {
+    throw new Error("GNews API anahtarı ayarlanmamış. https://gnews.io/ adresinden ücretsiz API key alın.");
   }
 
   try {
-    // Güvenilir kaynaklardan genel haberler
-    const generalResponse = await axios.get(`${BASE_URL}/top-headlines`, {
+    const response = await axios.get(`${GNEWS_BASE_URL}/top-headlines`, {
       params: {
-        apiKey: NEWS_API_KEY,
-        sources: RELIABLE_SOURCES.slice(0, 10).join(','),
-        pageSize: 20,
-        language: 'en'
+        token: GNEWS_API_KEY,
+        lang: "en",
+        country: "us",
+        max: 50
       }
     });
 
-    // İş/finans haberleri
-    const businessResponse = await axios.get(`${BASE_URL}/top-headlines`, {
-      params: {
-        apiKey: NEWS_API_KEY,
-        category: 'business',
-        sources: 'bloomberg,financial-times,wall-street-journal',
-        pageSize: 10,
-        language: 'en'
-      }
-    });
-
-    // Siyaset haberleri
-    const politicsResponse = await axios.get(`${BASE_URL}/everything`, {
-      params: {
-        apiKey: NEWS_API_KEY,
-        q: 'politics OR government OR election',
-        sources: 'bbc-news,cnn,reuters,the-guardian-uk,the-washington-post',
-        pageSize: 10,
-        language: 'en',
-        sortBy: 'publishedAt'
-      }
-    });
-
-    const allArticles = [
-      ...(generalResponse.data?.articles || []),
-      ...(businessResponse.data?.articles || []),
-      ...(politicsResponse.data?.articles || [])
-    ];
-
-    return allArticles
-      .filter((article: any) => article.title && article.description && article.url)
-      .map((article: any) => ({
-        title: article.title,
-        description: article.description,
-        url: article.url,
-        category: getCategoryFromArticle(article),
-        importance: getImportanceScore(article),
-        publishedAt: article.publishedAt,
-        imageUrl: article.urlToImage,
-        source: article.source?.name || 'Unknown'
-      }))
-      .slice(0, 50);
-
+    return response.data.articles.map((article: any) => ({
+      title: article.title,
+      description: article.description,
+      url: article.url,
+      category: getCategoryFromContent(article.title, article.description),
+      importance: getImportanceScore(article.title, article.description),
+      publishedAt: article.publishedAt,
+      imageUrl: article.image,
+      source: article.source.name
+    }));
   } catch (error: any) {
-    console.error("NewsAPI hatası:", error);
-    
-    // Handle specific error codes
-    if (error.response?.status === 426) {
-      throw new Error("API anahtarı geçersiz veya yükseltme gerekiyor. Lütfen NewsAPI.org'dan geçerli bir API anahtarı alın.");
-    } else if (error.response?.status === 401) {
-      throw new Error("API anahtarı geçersiz. Lütfen NewsAPI.org'dan geçerli bir API anahtarı alın.");
-    } else if (error.response?.status === 429) {
-      throw new Error("API kullanım limiti aşıldı. Lütfen daha sonra tekrar deneyin.");
-    } else if (error.response?.status === 500) {
-      throw new Error("NewsAPI sunucu hatası. Lütfen daha sonra tekrar deneyin.");
-    }
-    
-    throw error;
+    console.error("GNews API hatası:", error);
+    throw new Error("Haberler yüklenirken hata oluştu. API limitiniz dolmuş olabilir.");
   }
 }
 
-function getCategoryFromArticle(article: any): string {
-  const title = article.title?.toLowerCase() || "";
-  const description = article.description?.toLowerCase() || "";
-  const source = article.source?.name?.toLowerCase() || "";
-  
-  // Finans kaynakları
-  if (source.includes('bloomberg') || source.includes('financial') || source.includes('wall street')) {
-    return "finans";
+// The Guardian API (Tamamen ücretsiz)
+async function fetchFromGuardian(): Promise<NewsItem[]> {
+  if (GUARDIAN_API_KEY === "YOUR_GUARDIAN_API_KEY_HERE") {
+    throw new Error("Guardian API anahtarı ayarlanmamış. https://open-platform.theguardian.com/access/ adresinden ücretsiz API key alın.");
   }
+
+  try {
+    const response = await axios.get(`${GUARDIAN_BASE_URL}/search`, {
+      params: {
+        "api-key": GUARDIAN_API_KEY,
+        "show-fields": "headline,trailText,thumbnail,short-url",
+        "page-size": 50,
+        "order-by": "newest"
+      }
+    });
+
+    return response.data.response.results.map((article: any) => ({
+      title: article.fields?.headline || article.webTitle,
+      description: article.fields?.trailText || "Açıklama mevcut değil",
+      url: article.fields?.shortUrl || article.webUrl,
+      category: getCategoryFromSection(article.sectionName),
+      importance: getImportanceFromGuardian(article),
+      publishedAt: article.webPublicationDate,
+      imageUrl: article.fields?.thumbnail,
+      source: "The Guardian"
+    }));
+  } catch (error: any) {
+    console.error("Guardian API hatası:", error);
+    throw new Error("Guardian'dan haberler yüklenirken hata oluştu.");
+  }
+}
+
+// Currents API (Günlük 600 ücretsiz istek)
+async function fetchFromCurrents(): Promise<NewsItem[]> {
+  if (CURRENTS_API_KEY === "YOUR_CURRENTS_API_KEY_HERE") {
+    throw new Error("Currents API anahtarı ayarlanmamış. https://currentsapi.services/en adresinden ücretsiz API key alın.");
+  }
+
+  try {
+    const response = await axios.get(`${CURRENTS_BASE_URL}/latest-news`, {
+      headers: {
+        Authorization: CURRENTS_API_KEY
+      },
+      params: {
+        language: "en",
+        page_size: 50
+      }
+    });
+
+    return response.data.news.map((article: any) => ({
+      title: article.title,
+      description: article.description,
+      url: article.url,
+      category: CATEGORY_MAP[article.category] || "dünya",
+      importance: getImportanceScore(article.title, article.description),
+      publishedAt: article.published,
+      imageUrl: article.image,
+      source: "Currents API"
+    }));
+  } catch (error: any) {
+    console.error("Currents API hatası:", error);
+    throw new Error("Currents'tan haberler yüklenirken hata oluştu.");
+  }
+}
+
+// RSS Feed'lerden haber çekme (Tamamen ücretsiz, API key gerektirmez)
+async function fetchFromRSS(): Promise<NewsItem[]> {
+  const rssFeeds = [
+    { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World", category: "dünya" },
+    { url: "https://www.theguardian.com/world/rss", source: "Guardian World", category: "dünya" },
+    { url: "https://feeds.reuters.com/reuters/businessNews", source: "Reuters Business", category: "finans" },
+    { url: "https://feeds.reuters.com/Reuters/PoliticsNews", source: "Reuters Politics", category: "siyaset" }
+  ];
+
+  try {
+    // RSS-to-JSON API kullanarak RSS feed'leri JSON'a çeviriyoruz
+    const allNews: NewsItem[] = [];
+    
+    for (const feed of rssFeeds) {
+      try {
+        const response = await axios.get(`https://api.rss2json.com/v1/api.json`, {
+          params: {
+            rss_url: feed.url,
+            api_key: "public", // Ücretsiz public API
+            count: 10
+          }
+        });
+
+        if (response.data.status === "ok") {
+          const items = response.data.items.map((item: any) => ({
+            title: item.title,
+            description: item.description?.replace(/<[^>]*>/g, '') || "Açıklama mevcut değil",
+            url: item.link,
+            category: feed.category,
+            importance: getImportanceScore(item.title, item.description),
+            publishedAt: item.pubDate,
+            imageUrl: item.enclosure?.link || item.thumbnail,
+            source: feed.source
+          }));
+          allNews.push(...items);
+        }
+      } catch (feedError) {
+        console.warn(`RSS feed hatası (${feed.source}):`, feedError);
+      }
+    }
+
+    return allNews.slice(0, 50);
+  } catch (error: any) {
+    console.error("RSS feed hatası:", error);
+    throw new Error("RSS feed'lerden haberler yüklenirken hata oluştu.");
+  }
+}
+
+function getCategoryFromContent(title: string, description: string): string {
+  const content = `${title} ${description}`.toLowerCase();
   
-  // Siyaset anahtar kelimeleri
-  const politicsKeywords = ['politics', 'government', 'election', 'president', 'minister', 'parliament', 'congress', 'senate'];
-  if (politicsKeywords.some(keyword => title.includes(keyword) || description.includes(keyword))) {
+  if (content.includes('politic') || content.includes('government') || content.includes('election')) {
     return "siyaset";
   }
-  
-  // Finans anahtar kelimeleri
-  const financeKeywords = ['economy', 'market', 'stock', 'finance', 'business', 'trade', 'investment', 'bank'];
-  if (financeKeywords.some(keyword => title.includes(keyword) || description.includes(keyword))) {
+  if (content.includes('business') || content.includes('economy') || content.includes('market') || content.includes('finance')) {
     return "finans";
   }
-  
   return "dünya";
 }
 
-function getImportanceScore(article: any): number {
-  const title = article.title?.toLowerCase() || "";
-  const description = article.description?.toLowerCase() || "";
-  const source = article.source?.name?.toLowerCase() || "";
+function getCategoryFromSection(section: string): string {
+  const sectionLower = section.toLowerCase();
+  if (sectionLower.includes('politic')) return "siyaset";
+  if (sectionLower.includes('business') || sectionLower.includes('money')) return "finans";
+  return "dünya";
+}
+
+function getImportanceScore(title: string, description: string): number {
+  const content = `${title} ${description}`.toLowerCase();
   
-  // Kaynak güvenilirliği puanı
-  let sourceScore = 2;
-  if (['bbc', 'reuters', 'associated press', 'cnn'].some(s => source.includes(s))) {
-    sourceScore = 4;
-  } else if (['bloomberg', 'financial times', 'wall street journal'].some(s => source.includes(s))) {
-    sourceScore = 4;
-  }
-  
-  // Önemli anahtar kelimeler
   const criticalKeywords = ['breaking', 'urgent', 'crisis', 'emergency', 'war', 'attack', 'disaster'];
-  const importantKeywords = ['major', 'significant', 'important', 'critical', 'key', 'election', 'president'];
+  const importantKeywords = ['major', 'significant', 'important', 'critical', 'election', 'president'];
   
-  if (criticalKeywords.some(keyword => title.includes(keyword) || description.includes(keyword))) {
-    return Math.min(5, sourceScore + 1);
+  if (criticalKeywords.some(keyword => content.includes(keyword))) {
+    return 5;
   }
-  if (importantKeywords.some(keyword => title.includes(keyword) || description.includes(keyword))) {
-    return Math.min(4, sourceScore);
+  if (importantKeywords.some(keyword => content.includes(keyword))) {
+    return 4;
   }
-  
-  return sourceScore;
+  return 3;
+}
+
+function getImportanceFromGuardian(article: any): number {
+  // Guardian'ın kendi önem sıralamasını kullan
+  if (article.fields?.headline?.toLowerCase().includes('breaking')) return 5;
+  if (article.sectionName === 'World news' || article.sectionName === 'Politics') return 4;
+  return 3;
 }
