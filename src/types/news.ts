@@ -6,7 +6,8 @@ export interface NewsItem {
   importance: number;
   publishedAt?: string;
   imageUrl?: string;
-  source?: string; // Haber kaynağı bilgisi eklendi
+  source?: string;
+  id?: string; // Favoriler için unique ID
 }
 
 export interface MarketData {
@@ -20,4 +21,14 @@ export interface MarketData {
 export interface ApiKeyStatus {
   hasCustomKey: boolean;
   isValid: boolean;
+}
+
+export interface FavoriteNews extends NewsItem {
+  addedAt: string;
+}
+
+export interface TranslatedContent {
+  title: string;
+  description: string;
+  isTranslated: boolean;
 }

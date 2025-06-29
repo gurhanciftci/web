@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { NewsItem } from "../types/news";
+import { NewsItem, TranslatedContent } from "../types/news";
 import SearchBar from "./SearchBar";
 import ShareButtons from "./ShareButtons";
+import FavoriteButton from "./FavoriteButton";
+import TranslationButton from "./TranslationButton";
 import { getApiKeyStatus } from "../api/newsApi";
 
 const getImportanceLabel = (importance: number) => {
@@ -35,6 +37,8 @@ export default function NewsList({ news }: NewsListProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"importance" | "date">("importance");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [translations, setTranslations] = useState<Record<string, TranslatedContent>>({});
+  const [favoritesUpdate, setFavoritesUpdate] = useState(0);
   
   const apiStatus = getApiKeyStatus();
 
@@ -59,6 +63,22 @@ export default function NewsList({ news }: NewsListProps) {
       }
       return new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime();
     });
+
+  const handleTranslation = (newsUrl: string, translation: TranslatedContent | null) => {
+    setTranslations(prev => {
+      const newTranslations = { ...prev };
+      if (translation) {
+        newTranslations[newsUrl] = translation;
+      } else {
+        delete newTranslations[newsUrl];
+      }
+      return newTranslations;
+    });
+  };
+
+  const handleFavoriteToggle = () => {
+    setFavoritesUpdate(prev => prev + 1);
+  };
 
   if (news.length === 0) {
     return (
@@ -125,79 +145,102 @@ export default function NewsList({ news }: NewsListProps) {
 
       {/* Haber Listesi */}
       <div className="grid gap-6">
-        {filteredNews.map((item, i) => (
-          <article key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-            {item.imageUrl && (
-              <div className="aspect-video w-full overflow-hidden">
-                <img 
-                  src={item.imageUrl} 
-                  alt={item.title}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-            <div className="p-6">
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
-                  {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-                </span>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getImportanceColor(item.importance)}`}>
-                  {getImportanceLabel(item.importance)}
-                </span>
-                {item.source && (
-                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                    {item.source}
-                  </span>
-                )}
-                {item.publishedAt && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
-                    {new Date(item.publishedAt).toLocaleDateString('tr-TR', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
-                )}
-              </div>
-              
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 leading-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                <a href={item.url} target="_blank" rel="noopener noreferrer">
-                  {item.title}
-                </a>
-              </h2>
-              
-              {item.description && (
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
-                  {item.description.length > 200 
-                    ? `${item.description.substring(0, 200)}...` 
-                    : item.description
-                  }
-                </p>
+        {filteredNews.map((item, i) => {
+          const translation = translations[item.url];
+          const displayTitle = translation?.title || item.title;
+          const displayDescription = translation?.description || item.description;
+
+          return (
+            <article key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+              {item.imageUrl && (
+                <div className="aspect-video w-full overflow-hidden">
+                  <img 
+                    src={item.imageUrl} 
+                    alt={item.title}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </div>
               )}
-              
-              <div className="flex items-center justify-between">
-                <a 
-                  href={item.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm transition-colors"
-                >
-                  Haberi Oku
-                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-                <ShareButtons title={item.title} url={item.url} />
+              <div className="p-6">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
+                    {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getImportanceColor(item.importance)}`}>
+                    {getImportanceLabel(item.importance)}
+                  </span>
+                  {item.source && (
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                      {item.source}
+                    </span>
+                  )}
+                  {translation && (
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                      Çevrildi
+                    </span>
+                  )}
+                  {item.publishedAt && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
+                      {new Date(item.publishedAt).toLocaleDateString('tr-TR', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  )}
+                </div>
+                
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 leading-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  <a href={item.url} target="_blank" rel="noopener noreferrer">
+                    {displayTitle}
+                  </a>
+                </h2>
+                
+                {displayDescription && (
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    {displayDescription.length > 200 
+                      ? `${displayDescription.substring(0, 200)}...` 
+                      : displayDescription
+                    }
+                  </p>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <a 
+                    href={item.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm transition-colors"
+                  >
+                    Haberi Oku
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  
+                  <div className="flex items-center gap-2">
+                    <FavoriteButton 
+                      newsItem={item} 
+                      onToggle={handleFavoriteToggle}
+                    />
+                    <TranslationButton
+                      newsItem={item}
+                      onTranslate={(translation) => handleTranslation(item.url, translation)}
+                      isTranslated={!!translation}
+                    />
+                    <ShareButtons title={displayTitle} url={item.url} />
+                  </div>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
 
       {filteredNews.length === 0 && (

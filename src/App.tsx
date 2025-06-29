@@ -3,6 +3,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Header from "./components/Header";
 import TickerBar from "./components/TickerBar";
 import NewsList from "./components/NewsList";
+import FavoritesPage from "./components/FavoritesPage";
 import LoadingSpinner from "./components/LoadingSpinner";
 import ErrorMessage from "./components/ErrorMessage";
 import { fetchNews } from "./api/newsApi";
@@ -12,6 +13,7 @@ function AppContent() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<'news' | 'favorites'>('news');
 
   const loadNews = async () => {
     try {
@@ -28,22 +30,30 @@ function AppContent() {
   };
 
   useEffect(() => {
-    loadNews();
-    
-    // Her 5 dakikada bir haberleri güncelle
-    const interval = setInterval(loadNews, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+    if (currentPage === 'news') {
+      loadNews();
+      
+      // Her 5 dakikada bir haberleri güncelle
+      const interval = setInterval(loadNews, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [currentPage]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      <Header />
-      <TickerBar />
+      <Header onPageChange={setCurrentPage} currentPage={currentPage} />
+      {currentPage === 'news' && <TickerBar />}
       
       <main>
-        {loading && <LoadingSpinner />}
-        {error && <ErrorMessage message={error} onRetry={loadNews} />}
-        {!loading && !error && <NewsList news={news} />}
+        {currentPage === 'news' ? (
+          <>
+            {loading && <LoadingSpinner />}
+            {error && <ErrorMessage message={error} onRetry={loadNews} />}
+            {!loading && !error && <NewsList news={news} />}
+          </>
+        ) : (
+          <FavoritesPage />
+        )}
       </main>
       
       <footer className="bg-gray-800 dark:bg-gray-900 text-white py-8 mt-12">
@@ -53,6 +63,9 @@ function AppContent() {
           </p>
           <p className="text-gray-400 text-sm mt-2">
             Haberler çeşitli kaynaklardan otomatik olarak toplanmaktadır.
+          </p>
+          <p className="text-gray-500 text-xs mt-2">
+            Çeviri: MyMemory API • Favoriler: Yerel Depolama
           </p>
         </div>
       </footer>

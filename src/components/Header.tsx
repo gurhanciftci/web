@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
-export default function Header() {
+interface HeaderProps {
+  onPageChange?: (page: 'news' | 'favorites') => void;
+  currentPage?: 'news' | 'favorites';
+}
+
+export default function Header({ onPageChange, currentPage = 'news' }: HeaderProps) {
   const { isDark, toggleTheme } = useTheme();
 
   return (
@@ -12,6 +17,36 @@ export default function Header() {
             <h1 className="text-3xl font-bold">Global News</h1>
             <p className="text-blue-200 dark:text-gray-300 text-sm mt-1">Küresel Haber Uygulaması</p>
           </div>
+          
+          {/* Navigasyon */}
+          {onPageChange && (
+            <nav className="flex items-center gap-4">
+              <button
+                onClick={() => onPageChange('news')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  currentPage === 'news'
+                    ? 'bg-white/20 text-white'
+                    : 'text-blue-200 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                Haberler
+              </button>
+              <button
+                onClick={() => onPageChange('favorites')}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                  currentPage === 'favorites'
+                    ? 'bg-white/20 text-white'
+                    : 'text-blue-200 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                Favoriler
+              </button>
+            </nav>
+          )}
+          
           <div className="flex items-center gap-4">
             <button
               onClick={toggleTheme}
