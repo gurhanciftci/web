@@ -2,7 +2,7 @@ import axios from "axios";
 import { NewsItem } from "../types/news";
 
 // NewsAPI kullanarak güvenilir kaynaklardan haber çekme
-const NEWS_API_KEY = "YOUR_NEWS_API_KEY_HERE"; // Kullanıcının kendi API key'ini girmesi gerekiyor
+const NEWS_API_KEY = "U6jRdWC3PanPPlgEPqRc2eRQnLpefYfT185naPWDtcNsg_AW";
 const BASE_URL = "https://newsapi.org/v2";
 
 // Güvenilir dünya haber kaynakları
