@@ -10,6 +10,7 @@ import AdvancedSearch from "./AdvancedSearch";
 import VirtualScrollList from "./VirtualScrollList";
 import NewsAnalyticsPanel from "./NewsAnalyticsPanel";
 import FinancialDashboard from "./FinancialDashboard";
+import AIAnalysisPanel from "./AIAnalysisPanel";
 import { getApiKeyStatus } from "../api/newsApi";
 import { useToast } from "../contexts/ToastContext";
 import { prioritizationEngine } from "../utils/newsPrioritization";
@@ -52,6 +53,7 @@ export default function NewsList({ news }: NewsListProps) {
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showFinancialDashboard, setShowFinancialDashboard] = useState(false);
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
   const [useVirtualScroll, setUseVirtualScroll] = useState(false);
   
   const apiStatus = getApiKeyStatus();
@@ -176,7 +178,7 @@ export default function NewsList({ news }: NewsListProps) {
                   analytics.priorityScore >= 2.5 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
                   'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                 }`}>
-                  📊 {analytics.priorityScore.toFixed(1)}
+                  🤖 {analytics.priorityScore.toFixed(1)}
                 </span>
                 {analytics.category === 'breaking' && (
                   <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500 text-white animate-pulse">
@@ -278,11 +280,11 @@ export default function NewsList({ news }: NewsListProps) {
     <div className="container mx-auto px-4 py-6">
       {/* API Key Durumu */}
       {!apiStatus.hasCustomKey && (
-        <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+        <div className="mb-6 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
           <div className="flex items-center">
             <div className="text-yellow-600 dark:text-yellow-400 text-2xl mr-3">⚠️</div>
             <div>
-              <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300">API Key Gerekli</h3>
+              <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300">Demo Modu Aktif</h3>
               <p className="text-yellow-700 dark:text-yellow-400 text-sm">
                 Gerçek haberleri görmek için <a href="https://open-platform.theguardian.com/access/" target="_blank" rel="noopener noreferrer" className="underline font-medium">Guardian API</a>'dan ücretsiz API key alın ve .env dosyasında VITE_GUARDIAN_API_KEY değişkenini güncelleyin.
               </p>
@@ -318,12 +320,12 @@ export default function NewsList({ news }: NewsListProps) {
               onChange={(e) => setSortBy(e.target.value as "importance" | "date" | "priority")}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
             >
-              <option value="priority">AI Öncelik Puanı</option>
+              <option value="priority">🤖 AI Öncelik Puanı</option>
               <option value="importance">Önem Derecesi</option>
               <option value="date">Tarih</option>
             </select>
           </div>
-          <div className="flex items-end gap-2">
+          <div className="flex items-end">
             <button
               onClick={() => setShowAdvancedSearch(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
@@ -332,17 +334,6 @@ export default function NewsList({ news }: NewsListProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
               </svg>
               Gelişmiş
-            </button>
-            <button
-              onClick={() => setUseVirtualScroll(!useVirtualScroll)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                useVirtualScroll 
-                  ? 'bg-green-600 hover:bg-green-700 text-white' 
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-gray-200'
-              }`}
-              title="Sanal kaydırma (büyük listeler için)"
-            >
-              {useVirtualScroll ? '📜 Sanal' : '📄 Normal'}
             </button>
           </div>
           <div className="flex items-end">
@@ -356,7 +347,7 @@ export default function NewsList({ news }: NewsListProps) {
               Analiz
             </button>
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
             <button
               onClick={() => setShowFinancialDashboard(true)}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
@@ -365,6 +356,13 @@ export default function NewsList({ news }: NewsListProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Finans
+            </button>
+            <button
+              onClick={() => setShowAIAnalysis(true)}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 shadow-lg"
+            >
+              <span>🤖</span>
+              AI Analiz
             </button>
           </div>
         </div>
@@ -437,6 +435,13 @@ export default function NewsList({ news }: NewsListProps) {
         news={news}
         isOpen={showFinancialDashboard}
         onClose={() => setShowFinancialDashboard(false)}
+      />
+
+      {/* AI Analysis Panel */}
+      <AIAnalysisPanel
+        news={news}
+        isOpen={showAIAnalysis}
+        onClose={() => setShowAIAnalysis(false)}
       />
     </div>
   );

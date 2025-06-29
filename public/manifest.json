@@ -1,13 +1,13 @@
 {
-  "name": "Global News - Küresel Haber Uygulaması",
-  "short_name": "Global News",
-  "description": "Modern ve kullanıcı dostu küresel haber uygulaması",
+  "name": "Huly News - AI Destekli Finans Haber Platformu",
+  "short_name": "Huly News",
+  "description": "Küresel finans piyasalarına odaklanan AI destekli profesyonel haber platformu",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1e40af",
   "orientation": "portrait-primary",
-  "categories": ["news", "productivity"],
+  "categories": ["news", "finance", "business", "productivity"],
   "lang": "tr",
   "dir": "ltr",
   "icons": [
@@ -52,6 +52,30 @@
       ]
     },
     {
+      "name": "AI Analiz",
+      "short_name": "AI Analiz",
+      "description": "Yapay zeka destekli haber analizi",
+      "url": "/ai-analysis",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Finans Dashboard",
+      "short_name": "Finans",
+      "description": "Finansal analiz ve piyasa verileri",
+      "url": "/finance",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
       "name": "Favoriler",
       "short_name": "Favoriler",
       "description": "Favori haberlerinizi görüntüle",
@@ -67,5 +91,5 @@
   "related_applications": [],
   "prefer_related_applications": false,
   "scope": "/",
-  "id": "global-news-app"
+  "id": "huly-news-app"
 }
