@@ -1,5 +1,5 @@
 import axios from "axios";
-import { NewsItem } from "../types/news";
+import { NewsItem, ApiKeyStatus } from "../types/news";
 
 // NewsAPI kullanarak güvenilir kaynaklardan haber çekme
 const NEWS_API_KEY = "c990a5ee0860494f86d5fa803e2f9084";
@@ -41,6 +41,14 @@ const CATEGORY_MAP: Record<string, string> = {
   entertainment: "dünya",
   science: "dünya"
 };
+
+export function getApiKeyStatus(): ApiKeyStatus {
+  const isDefaultKey = NEWS_API_KEY === "c990a5ee0860494f86d5fa803e2f9084";
+  return {
+    hasCustomKey: !isDefaultKey,
+    isValid: true // Assume valid for now, could be enhanced with actual validation
+  };
+}
 
 export async function fetchNews(): Promise<NewsItem[]> {
   try {
