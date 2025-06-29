@@ -18,6 +18,6 @@ export interface MarketData {
 }
 
 export interface ApiKeyStatus {
-  hasKey: boolean;
-  message: string;
+  hasCustomKey: boolean;
+  isValid: boolean;
 }
