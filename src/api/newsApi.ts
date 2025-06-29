@@ -81,7 +81,9 @@ const MOCK_NEWS_DATA: NewsItem[] = [
 export function getApiKeyStatus(): ApiKeyStatus {
   const hasValidKey = API_CONFIG.GUARDIAN_API_KEY && 
                      API_CONFIG.GUARDIAN_API_KEY !== "YOUR_GUARDIAN_API_KEY_HERE" &&
-                     API_CONFIG.GUARDIAN_API_KEY !== "";
+                     API_CONFIG.GUARDIAN_API_KEY !== "your_guardian_api_key_here" &&
+                     API_CONFIG.GUARDIAN_API_KEY !== "" &&
+                     API_CONFIG.GUARDIAN_API_KEY.length > 10; // Basic length check
   
   return {
     hasCustomKey: hasValidKey,
@@ -107,11 +109,13 @@ export async function fetchNews(): Promise<NewsItem[]> {
     return persistentNews;
   }
 
-  // Check API key status
+  // Check API key status - CRITICAL: Don't attempt API call if no valid key
   const apiStatus = getApiKeyStatus();
   
-  if (!apiStatus.hasCustomKey) {
-    console.log('⚠️ API key bulunamadı, demo veriler kullanılıyor');
+  if (!apiStatus.hasCustomKey || !apiStatus.isValid) {
+    console.log('⚠️ Geçerli API key bulunamadı, demo veriler kullanılıyor');
+    console.log('💡 Guardian API key almak için: https://open-platform.theguardian.com/access/');
+    
     // Cache mock data for demo
     cache.set(cacheKey, MOCK_NEWS_DATA, 5 * 60 * 1000);
     persistentCache.set(cacheKey, MOCK_NEWS_DATA, 30 * 60 * 1000);
@@ -148,6 +152,12 @@ export async function fetchNews(): Promise<NewsItem[]> {
 
 async function fetchFromGuardian(): Promise<NewsItem[]> {
   console.log('🔄 Guardian API\'den haberler yükleniyor...');
+  
+  // Double-check API key before making request
+  const apiStatus = getApiKeyStatus();
+  if (!apiStatus.hasCustomKey || !apiStatus.isValid) {
+    throw new Error("API anahtarı bulunamadı veya geçersiz");
+  }
   
   try {
     // Create AbortController for timeout

@@ -27,14 +27,21 @@ export function validateApiKeys(): {
   const warnings: string[] = [];
   const recommendations: string[] = [];
   
-  // Guardian API Key Check
-  if (!API_CONFIG.GUARDIAN_API_KEY || API_CONFIG.GUARDIAN_API_KEY === 'YOUR_GUARDIAN_API_KEY_HERE') {
+  // Guardian API Key Check - More thorough validation
+  if (!API_CONFIG.GUARDIAN_API_KEY || 
+      API_CONFIG.GUARDIAN_API_KEY === 'YOUR_GUARDIAN_API_KEY_HERE' ||
+      API_CONFIG.GUARDIAN_API_KEY === 'your_guardian_api_key_here' ||
+      API_CONFIG.GUARDIAN_API_KEY.length < 10) {
     missing.push('Guardian API Key');
     recommendations.push('Guardian API key almak için: https://open-platform.theguardian.com/access/');
+  } else {
+    warnings.push('Guardian API key mevcut - haberler aktif');
   }
   
   // TwelveData API Key Check
-  if (!API_CONFIG.TWELVE_DATA_KEY || API_CONFIG.TWELVE_DATA_KEY === 'YOUR_TWELVE_DATA_KEY_HERE') {
+  if (!API_CONFIG.TWELVE_DATA_KEY || 
+      API_CONFIG.TWELVE_DATA_KEY === 'YOUR_TWELVE_DATA_KEY_HERE' ||
+      API_CONFIG.TWELVE_DATA_KEY === 'your_twelve_data_key_here') {
     missing.push('TwelveData API Key');
     recommendations.push('TwelveData API key almak için: https://twelvedata.com/');
   } else {
@@ -42,7 +49,9 @@ export function validateApiKeys(): {
   }
   
   // OpenWeather API Key Check
-  if (!API_CONFIG.OPENWEATHER_API_KEY || API_CONFIG.OPENWEATHER_API_KEY === 'YOUR_OPENWEATHER_API_KEY_HERE') {
+  if (!API_CONFIG.OPENWEATHER_API_KEY || 
+      API_CONFIG.OPENWEATHER_API_KEY === 'YOUR_OPENWEATHER_API_KEY_HERE' ||
+      API_CONFIG.OPENWEATHER_API_KEY === 'your_openweather_api_key_here') {
     missing.push('OpenWeather API Key');
     recommendations.push('OpenWeather API key almak için: https://openweathermap.org/api');
   } else {
@@ -64,8 +73,15 @@ export function getEnvironmentInfo() {
     isProduction: import.meta.env.PROD,
     baseUrl: import.meta.env.BASE_URL,
     mode: import.meta.env.MODE,
-    hasGuardianKey: !!API_CONFIG.GUARDIAN_API_KEY && API_CONFIG.GUARDIAN_API_KEY !== 'YOUR_GUARDIAN_API_KEY_HERE',
-    hasTwelveDataKey: !!API_CONFIG.TWELVE_DATA_KEY && API_CONFIG.TWELVE_DATA_KEY !== 'YOUR_TWELVE_DATA_KEY_HERE',
-    hasWeatherKey: !!API_CONFIG.OPENWEATHER_API_KEY && API_CONFIG.OPENWEATHER_API_KEY !== 'YOUR_OPENWEATHER_API_KEY_HERE'
+    hasGuardianKey: !!API_CONFIG.GUARDIAN_API_KEY && 
+                   API_CONFIG.GUARDIAN_API_KEY !== 'YOUR_GUARDIAN_API_KEY_HERE' &&
+                   API_CONFIG.GUARDIAN_API_KEY !== 'your_guardian_api_key_here' &&
+                   API_CONFIG.GUARDIAN_API_KEY.length > 10,
+    hasTwelveDataKey: !!API_CONFIG.TWELVE_DATA_KEY && 
+                     API_CONFIG.TWELVE_DATA_KEY !== 'YOUR_TWELVE_DATA_KEY_HERE' &&
+                     API_CONFIG.TWELVE_DATA_KEY !== 'your_twelve_data_key_here',
+    hasWeatherKey: !!API_CONFIG.OPENWEATHER_API_KEY && 
+                  API_CONFIG.OPENWEATHER_API_KEY !== 'YOUR_OPENWEATHER_API_KEY_HERE' &&
+                  API_CONFIG.OPENWEATHER_API_KEY !== 'your_openweather_api_key_here'
   };
 }
