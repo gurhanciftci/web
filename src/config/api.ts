@@ -9,11 +9,11 @@ export const API_CONFIG = {
   MARKET_REFRESH_INTERVAL: parseInt(import.meta.env.VITE_MARKET_REFRESH_INTERVAL || '300000'), // 5 minutes
   WEATHER_REFRESH_INTERVAL: parseInt(import.meta.env.VITE_WEATHER_REFRESH_INTERVAL || '1800000'), // 30 minutes
   
-  // API Endpoints
-  GUARDIAN_BASE_URL: 'https://content.guardianapis.com',
-  TWELVE_DATA_BASE_URL: 'https://api.twelvedata.com',
+  // API Endpoints - Use proxy paths in development, direct URLs in production
+  GUARDIAN_BASE_URL: import.meta.env.DEV ? '/api/guardian' : 'https://content.guardianapis.com',
+  TWELVE_DATA_BASE_URL: import.meta.env.DEV ? '/api/twelvedata' : 'https://api.twelvedata.com',
   TRANSLATION_API_URL: 'https://api.mymemory.translated.net/get',
-  OPENWEATHER_BASE_URL: 'https://api.openweathermap.org/data/2.5'
+  OPENWEATHER_BASE_URL: import.meta.env.DEV ? '/api/openweather' : 'https://api.openweathermap.org/data/2.5'
 };
 
 // Validate API keys and provide helpful feedback
