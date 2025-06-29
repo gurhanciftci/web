@@ -8,8 +8,10 @@ import ImageWithFallback from "./ImageWithFallback";
 import EnhancedSkeletonLoader from "./EnhancedSkeletonLoader";
 import AdvancedSearch from "./AdvancedSearch";
 import VirtualScrollList from "./VirtualScrollList";
+import NewsAnalyticsPanel from "./NewsAnalyticsPanel";
 import { getApiKeyStatus } from "../api/newsApi";
 import { useToast } from "../contexts/ToastContext";
+import { prioritizationEngine } from "../utils/newsPrioritization";
 
 const getImportanceLabel = (importance: number) => {
   if (importance >= 5) return "Çok Önemli";
@@ -40,13 +42,14 @@ interface NewsListProps {
 
 export default function NewsList({ news }: NewsListProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"importance" | "date">("importance");
+  const [sortBy, setSortBy] = useState<"importance" | "date" | "priority">("priority");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [translations, setTranslations] = useState<Record<string, TranslatedContent>>({});
   const [favoritesUpdate, setFavoritesUpdate] = useState(0);
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [useVirtualScroll, setUseVirtualScroll] = useState(false);
   
   const apiStatus = getApiKeyStatus();
@@ -59,6 +62,7 @@ export default function NewsList({ news }: NewsListProps) {
     { value: "siyaset", label: "Siyaset" }
   ];
 
+  // Enhanced filtering and sorting with prioritization
   const filteredNews = news
     .filter(item => {
       const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
@@ -68,7 +72,11 @@ export default function NewsList({ news }: NewsListProps) {
       return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
-      if (sortBy === "importance") {
+      if (sortBy === "priority") {
+        const analyticsA = prioritizationEngine.analyzeNews(a);
+        const analyticsB = prioritizationEngine.analyzeNews(b);
+        return analyticsB.priorityScore - analyticsA.priorityScore;
+      } else if (sortBy === "importance") {
         return b.importance - a.importance;
       }
       return new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime();
@@ -94,7 +102,7 @@ export default function NewsList({ news }: NewsListProps) {
   const handleAdvancedSearch = (filters: any) => {
     setSearchTerm(filters.query);
     setSelectedCategory(filters.category);
-    setSortBy(filters.sortBy === 'relevance' ? 'importance' : filters.sortBy);
+    setSortBy(filters.sortBy === 'relevance' ? 'priority' : filters.sortBy);
     showInfo('Arama Uygulandı', 'Gelişmiş arama filtreleri uygulandı');
   };
 
@@ -103,9 +111,15 @@ export default function NewsList({ news }: NewsListProps) {
     const displayTitle = translation?.title || item.title;
     const displayDescription = translation?.description || item.description;
     const imageKey = `${item.url}-${index}`;
+    
+    // Get prioritization analytics
+    const analytics = prioritizationEngine.analyzeNews(item);
+    const priorityColor = analytics.priorityScore >= 4 ? 'border-l-red-500' :
+                         analytics.priorityScore >= 3.5 ? 'border-l-orange-500' :
+                         analytics.priorityScore >= 2.5 ? 'border-l-blue-500' : 'border-l-gray-300';
 
     return (
-      <article key={item.id || index} className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700 group">
+      <article key={item.id || index} className={`bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700 border-l-4 ${priorityColor} group`}>
         <div className="p-4">
           <div className="flex items-start gap-4">
             {/* Optimized Image Component */}
@@ -145,7 +159,7 @@ export default function NewsList({ news }: NewsListProps) {
 
             {/* Haber İçeriği */}
             <div className="flex-1 min-w-0">
-              {/* Enhanced Tags */}
+              {/* Enhanced Tags with Priority Score */}
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)} transition-colors`}>
                   {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
@@ -153,6 +167,20 @@ export default function NewsList({ news }: NewsListProps) {
                 <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getImportanceColor(item.importance)} transition-colors`}>
                   {getImportanceLabel(item.importance)}
                 </span>
+                {/* Priority Score Badge */}
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  analytics.priorityScore >= 4 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                  analytics.priorityScore >= 3.5 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+                  analytics.priorityScore >= 2.5 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                  'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                }`}>
+                  📊 {analytics.priorityScore.toFixed(1)}
+                </span>
+                {analytics.category === 'breaking' && (
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500 text-white animate-pulse">
+                    🚨 SON DAKİKA
+                  </span>
+                )}
                 {item.source && (
                   <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 transition-colors">
                     {item.source}
@@ -263,7 +291,7 @@ export default function NewsList({ news }: NewsListProps) {
 
       {/* Enhanced Search and Filters */}
       <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="md:col-span-1">
             <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
           </div>
@@ -285,9 +313,10 @@ export default function NewsList({ news }: NewsListProps) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sıralama:</label>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as "importance" | "date")}
+              onChange={(e) => setSortBy(e.target.value as "importance" | "date" | "priority")}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
             >
+              <option value="priority">AI Öncelik Puanı</option>
               <option value="importance">Önem Derecesi</option>
               <option value="date">Tarih</option>
             </select>
@@ -312,6 +341,17 @@ export default function NewsList({ news }: NewsListProps) {
               title="Sanal kaydırma (büyük listeler için)"
             >
               {useVirtualScroll ? '📜 Sanal' : '📄 Normal'}
+            </button>
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={() => setShowAnalytics(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Analiz
             </button>
           </div>
         </div>
@@ -368,8 +408,15 @@ export default function NewsList({ news }: NewsListProps) {
         initialFilters={{
           query: searchTerm,
           category: selectedCategory,
-          sortBy: sortBy === 'importance' ? 'importance' : 'date'
+          sortBy: sortBy === 'priority' ? 'importance' : sortBy
         }}
+      />
+
+      {/* Analytics Panel */}
+      <NewsAnalyticsPanel
+        news={filteredNews}
+        isOpen={showAnalytics}
+        onClose={() => setShowAnalytics(false)}
       />
     </div>
   );
