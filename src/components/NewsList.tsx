@@ -75,7 +75,7 @@ export default function NewsList({ news }: NewsListProps) {
   return (
     <div className="container mx-auto px-4 py-6">
       {/* API Key Durumu */}
-      {!apiStatus.hasKey && (
+      {!apiStatus.hasCustomKey && (
         <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
           <div className="flex items-center">
             <div className="text-yellow-600 dark:text-yellow-400 text-2xl mr-3">⚠️</div>
