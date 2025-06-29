@@ -23,7 +23,7 @@ export default function TickerBar() {
   }, []);
 
   return (
-    <div className="w-full bg-gradient-to-r from-gray-900 to-black text-yellow-300 overflow-hidden whitespace-nowrap py-3 border-b-2 border-yellow-400">
+    <div className="w-full bg-gradient-to-r from-gray-900 to-black dark:from-gray-800 dark:to-gray-900 text-yellow-300 overflow-hidden whitespace-nowrap py-3 border-b-2 border-yellow-400">
       <div className="inline-block animate-ticker min-w-full">
         <span className="mr-8 text-yellow-400 font-semibold">📈 CANLI PİYASA VERİLERİ:</span>
         {isLoading ? (

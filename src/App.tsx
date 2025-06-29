@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import Header from "./components/Header";
 import TickerBar from "./components/TickerBar";
 import NewsList from "./components/NewsList";
@@ -7,7 +8,7 @@ import ErrorMessage from "./components/ErrorMessage";
 import { fetchNews } from "./api/newsApi";
 import { NewsItem } from "./types/news";
 
-export default function App() {
+function AppContent() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +36,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <Header />
       <TickerBar />
       
@@ -45,7 +46,7 @@ export default function App() {
         {!loading && !error && <NewsList news={news} />}
       </main>
       
-      <footer className="bg-gray-800 text-white py-8 mt-12">
+      <footer className="bg-gray-800 dark:bg-gray-900 text-white py-8 mt-12">
         <div className="container mx-auto px-4 text-center">
           <p className="text-gray-300">
             © 2025 Global News. Tüm hakları saklıdır.
@@ -56,5 +57,13 @@ export default function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }

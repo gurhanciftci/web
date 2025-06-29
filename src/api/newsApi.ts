@@ -10,10 +10,10 @@ const CATEGORY_MAP: Record<string, string> = {
   business: "finans",
   finance: "finans",
   economy: "finans",
-  technology: "teknoloji",
-  health: "sağlık",
-  sports: "spor",
-  entertainment: "eğlence"
+  technology: "dünya",
+  health: "dünya",
+  sports: "dünya",
+  entertainment: "dünya"
 };
 
 export async function fetchNews(): Promise<NewsItem[]> {
@@ -35,7 +35,7 @@ export async function fetchNews(): Promise<NewsItem[]> {
       title: item.title || "Başlık bulunamadı",
       description: item.description || "Açıklama bulunamadı",
       url: item.url || "#",
-      category: CATEGORY_MAP[item.category] || "genel",
+      category: CATEGORY_MAP[item.category] || "dünya",
       importance: getImportanceScore(item),
       publishedAt: item.published,
       imageUrl: item.image
