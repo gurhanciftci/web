@@ -11,6 +11,7 @@ import VirtualScrollList from "./VirtualScrollList";
 import NewsAnalyticsPanel from "./NewsAnalyticsPanel";
 import FinancialDashboard from "./FinancialDashboard";
 import AIAnalysisPanel from "./AIAnalysisPanel";
+import ComprehensiveAIAnalysisPanel from "./ComprehensiveAIAnalysisPanel";
 import { getApiKeyStatus } from "../api/newsApi";
 import { useToast } from "../contexts/ToastContext";
 import { prioritizationEngine } from "../utils/newsPrioritization";
@@ -54,6 +55,7 @@ export default function NewsList({ news }: NewsListProps) {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showFinancialDashboard, setShowFinancialDashboard] = useState(false);
   const [showAIAnalysis, setShowAIAnalysis] = useState(false);
+  const [showComprehensiveAI, setShowComprehensiveAI] = useState(false);
   const [useVirtualScroll, setUseVirtualScroll] = useState(false);
   
   const apiStatus = getApiKeyStatus();
@@ -364,6 +366,13 @@ export default function NewsList({ news }: NewsListProps) {
               <span>🤖</span>
               AI Analiz
             </button>
+            <button
+              onClick={() => setShowComprehensiveAI(true)}
+              className="bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 hover:from-cyan-700 hover:via-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 shadow-lg animate-pulse"
+            >
+              <span>🚀</span>
+              Kapsamlı AI
+            </button>
           </div>
         </div>
       </div>
@@ -442,6 +451,13 @@ export default function NewsList({ news }: NewsListProps) {
         news={news}
         isOpen={showAIAnalysis}
         onClose={() => setShowAIAnalysis(false)}
+      />
+
+      {/* Comprehensive AI Analysis Panel */}
+      <ComprehensiveAIAnalysisPanel
+        news={news}
+        isOpen={showComprehensiveAI}
+        onClose={() => setShowComprehensiveAI(false)}
       />
     </div>
   );
