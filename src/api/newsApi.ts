@@ -1,10 +1,8 @@
 import axios from "axios";
 import { NewsItem, ApiKeyStatus } from "../types/news";
-
-// Guardian API - Ücretsiz günlük 5000 istek
-// https://open-platform.theguardian.com/access/ adresinden ücretsiz API key alabilirsiniz
-const GUARDIAN_API_KEY = "079580be-8193-46b9-91ed-97794bf9317f";
-const GUARDIAN_BASE_URL = "https://content.guardianapis.com";
+import { API_CONFIG } from "../config/api";
+import { sanitizeNewsContent, rateLimiter } from "../utils/security";
+import { cache, persistentCache } from "../utils/cache";
 
 const CATEGORY_MAP: Record<string, string> = {
   world: "dünya",
@@ -22,7 +20,7 @@ const CATEGORY_MAP: Record<string, string> = {
 };
 
 export function getApiKeyStatus(): ApiKeyStatus {
-  const hasValidKey = GUARDIAN_API_KEY !== "YOUR_GUARDIAN_API_KEY_HERE";
+  const hasValidKey = API_CONFIG.GUARDIAN_API_KEY && API_CONFIG.GUARDIAN_API_KEY !== "YOUR_GUARDIAN_API_KEY_HERE";
   
   return {
     hasCustomKey: hasValidKey,
@@ -31,40 +29,73 @@ export function getApiKeyStatus(): ApiKeyStatus {
 }
 
 export async function fetchNews(): Promise<NewsItem[]> {
+  const cacheKey = 'guardian-news';
+  
+  // Check cache first
+  const cachedNews = cache.get<NewsItem[]>(cacheKey);
+  if (cachedNews) {
+    return cachedNews;
+  }
+
+  // Check persistent cache
+  const persistentNews = persistentCache.get<NewsItem[]>(cacheKey);
+  if (persistentNews) {
+    cache.set(cacheKey, persistentNews, 5 * 60 * 1000); // 5 minutes in memory
+    return persistentNews;
+  }
+
+  // Rate limiting check
+  if (!rateLimiter.canMakeRequest('guardian-api', 10, 60 * 1000)) {
+    throw new Error("API rate limit exceeded. Please wait a moment.");
+  }
+
   return fetchFromGuardian();
 }
 
-// Guardian API (Günlük 5000 ücretsiz istek)
 async function fetchFromGuardian(): Promise<NewsItem[]> {
   try {
-    const response = await axios.get(`${GUARDIAN_BASE_URL}/search`, {
+    const response = await axios.get(`${API_CONFIG.GUARDIAN_BASE_URL}/search`, {
       params: {
-        'api-key': GUARDIAN_API_KEY,
+        'api-key': API_CONFIG.GUARDIAN_API_KEY,
         'show-fields': 'headline,trailText,thumbnail,short-url',
         'show-tags': 'contributor',
         'order-by': 'newest',
-        'page-size': 50,
-        'q': 'NOT sport', // Spor haberlerini filtrele
+        'page-size': 30, // Reduced from 50 to save bandwidth
+        'q': 'NOT sport', 
         'section': 'world|politics|business|technology|science|environment'
-      }
+      },
+      timeout: 10000 // 10 second timeout
     });
 
     if (!response.data.response?.results) {
       throw new Error("API'den haber verisi alınamadı");
     }
 
-    return response.data.response.results.map((article: any) => ({
-      title: article.fields?.headline || article.webTitle || "Başlık bulunamadı",
-      description: article.fields?.trailText || "Açıklama bulunamadı",
+    const news = response.data.response.results.map((article: any) => ({
+      title: sanitizeNewsContent(article.fields?.headline || article.webTitle || "Başlık bulunamadı"),
+      description: sanitizeNewsContent(article.fields?.trailText || "Açıklama bulunamadı"),
       url: article.fields?.shortUrl || article.webUrl || "#",
       category: getCategoryFromSection(article.sectionId),
       importance: getImportanceScore(article.fields?.headline || article.webTitle, article.fields?.trailText || ""),
       publishedAt: article.webPublicationDate,
       imageUrl: article.fields?.thumbnail,
-      source: "The Guardian"
+      source: "The Guardian",
+      id: article.id
     }));
+
+    // Cache the results
+    cache.set('guardian-news', news, 15 * 60 * 1000); // 15 minutes in memory
+    persistentCache.set('guardian-news', news, 60 * 60 * 1000); // 1 hour persistent
+
+    return news;
   } catch (error: any) {
     console.error("Guardian API hatası:", error);
+    
+    // Try to return cached data on error
+    const fallbackNews = persistentCache.get<NewsItem[]>('guardian-news');
+    if (fallbackNews) {
+      return fallbackNews;
+    }
     
     if (error.response?.status === 401) {
       throw new Error("API anahtarı geçersiz. Lütfen Guardian API anahtarınızı kontrol edin.");

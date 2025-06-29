@@ -1,7 +1,7 @@
 import { TranslatedContent } from '../types/news';
-
-// Ücretsiz çeviri servisi - MyMemory API (günlük 10,000 ücretsiz çeviri)
-const TRANSLATION_API_URL = 'https://api.mymemory.translated.net/get';
+import { rateLimiter } from './security';
+import { cache, persistentCache } from './cache';
+import { API_CONFIG } from '../config/api';
 
 export async function translateText(text: string, targetLang: string = 'tr'): Promise<string> {
   try {
@@ -10,8 +10,14 @@ export async function translateText(text: string, targetLang: string = 'tr'): Pr
       return text;
     }
 
+    // Rate limiting check
+    if (!rateLimiter.canMakeRequest('translation-api', 5, 60 * 1000)) {
+      throw new Error('Çeviri servisi rate limit aşıldı. Lütfen bekleyin.');
+    }
+
     const response = await fetch(
-      `${TRANSLATION_API_URL}?q=${encodeURIComponent(text)}&langpair=en|${targetLang}`
+      `${API_CONFIG.TRANSLATION_API_URL}?q=${encodeURIComponent(text)}&langpair=en|${targetLang}`,
+      { timeout: 10000 }
     );
     
     if (!response.ok) {
@@ -32,17 +38,38 @@ export async function translateText(text: string, targetLang: string = 'tr'): Pr
 }
 
 export async function translateNewsContent(title: string, description: string): Promise<TranslatedContent> {
+  const cacheKey = `translation-${btoa(title).substring(0, 32)}`;
+  
+  // Check cache first
+  const cachedTranslation = cache.get<TranslatedContent>(cacheKey);
+  if (cachedTranslation) {
+    return cachedTranslation;
+  }
+
+  // Check persistent cache
+  const persistentTranslation = persistentCache.get<TranslatedContent>(cacheKey);
+  if (persistentTranslation) {
+    cache.set(cacheKey, persistentTranslation, 60 * 60 * 1000); // 1 hour in memory
+    return persistentTranslation;
+  }
+
   try {
     const [translatedTitle, translatedDescription] = await Promise.all([
       translateText(title),
       translateText(description)
     ]);
     
-    return {
+    const translation: TranslatedContent = {
       title: translatedTitle,
       description: translatedDescription,
       isTranslated: true
     };
+
+    // Cache the translation
+    cache.set(cacheKey, translation, 60 * 60 * 1000); // 1 hour
+    persistentCache.set(cacheKey, translation, 7 * 24 * 60 * 60 * 1000); // 7 days
+    
+    return translation;
   } catch (error) {
     console.error('Haber çevirisi hatası:', error);
     throw error;
@@ -54,37 +81,13 @@ function containsTurkishChars(text: string): boolean {
   return turkishChars.test(text);
 }
 
-// Çeviri durumunu localStorage'da sakla
-const TRANSLATION_CACHE_KEY = 'translation-cache';
-
+// Legacy functions for backward compatibility
 export function getCachedTranslation(originalTitle: string): TranslatedContent | null {
-  try {
-    const cache = localStorage.getItem(TRANSLATION_CACHE_KEY);
-    if (!cache) return null;
-    
-    const translations = JSON.parse(cache);
-    return translations[originalTitle] || null;
-  } catch (error) {
-    return null;
-  }
+  const cacheKey = `translation-${btoa(originalTitle).substring(0, 32)}`;
+  return persistentCache.get<TranslatedContent>(cacheKey);
 }
 
 export function setCachedTranslation(originalTitle: string, translation: TranslatedContent): void {
-  try {
-    const cache = localStorage.getItem(TRANSLATION_CACHE_KEY);
-    const translations = cache ? JSON.parse(cache) : {};
-    
-    translations[originalTitle] = translation;
-    
-    // Cache boyutunu sınırla (son 100 çeviri)
-    const keys = Object.keys(translations);
-    if (keys.length > 100) {
-      const oldestKeys = keys.slice(0, keys.length - 100);
-      oldestKeys.forEach(key => delete translations[key]);
-    }
-    
-    localStorage.setItem(TRANSLATION_CACHE_KEY, JSON.stringify(translations));
-  } catch (error) {
-    console.error('Çeviri cache hatası:', error);
-  }
+  const cacheKey = `translation-${btoa(originalTitle).substring(0, 32)}`;
+  persistentCache.set(cacheKey, translation, 7 * 24 * 60 * 60 * 1000); // 7 days
 }

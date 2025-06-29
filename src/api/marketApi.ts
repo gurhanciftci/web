@@ -1,8 +1,8 @@
 import axios from "axios";
 import { MarketData } from "../types/news";
-
-const TWELVE_DATA_KEY = "3dd8fc65d4af49bf95872f70c8a04c9d";
-const BASE_TWELVE = `https://api.twelvedata.com/price?apikey=${TWELVE_DATA_KEY}`;
+import { API_CONFIG } from "../config/api";
+import { rateLimiter } from "../utils/security";
+import { cache, persistentCache } from "../utils/cache";
 
 const queries = [
   { key: "S&P 500", symbol: "SPX" },
@@ -16,10 +16,31 @@ const queries = [
 ];
 
 export async function fetchMarketData(): Promise<string> {
+  const cacheKey = 'market-ticker';
+  
+  // Check cache first
+  const cachedData = cache.get<string>(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
+
+  // Rate limiting check
+  if (!rateLimiter.canMakeRequest('market-api', 5, 60 * 1000)) {
+    const fallbackData = persistentCache.get<string>(cacheKey);
+    if (fallbackData) return fallbackData;
+    throw new Error("Market API rate limit exceeded");
+  }
+
   const results = await Promise.all(
-    queries.map(async ({ key, symbol }) => {
+    queries.slice(0, 6).map(async ({ key, symbol }) => { // Reduced to 6 items
       try {
-        const res = await axios.get(`${BASE_TWELVE}&symbol=${encodeURIComponent(symbol)}`);
+        const res = await axios.get(`${API_CONFIG.TWELVE_DATA_BASE_URL}/price`, {
+          params: {
+            apikey: API_CONFIG.TWELVE_DATA_KEY,
+            symbol: symbol
+          },
+          timeout: 5000
+        });
         const price = res.data?.price;
         if (price) {
           return `${key}: $${parseFloat(price).toFixed(2)}`;
@@ -31,14 +52,35 @@ export async function fetchMarketData(): Promise<string> {
       }
     })
   );
-  return results.join("  |  ");
+
+  const tickerText = results.join("  |  ");
+  
+  // Cache the results
+  cache.set(cacheKey, tickerText, 5 * 60 * 1000); // 5 minutes
+  persistentCache.set(cacheKey, tickerText, 30 * 60 * 1000); // 30 minutes
+
+  return tickerText;
 }
 
 export async function fetchDetailedMarketData(): Promise<MarketData[]> {
+  const cacheKey = 'detailed-market-data';
+  
+  // Check cache first
+  const cachedData = cache.get<MarketData[]>(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
+
   const results = await Promise.all(
     queries.map(async ({ key, symbol }) => {
       try {
-        const res = await axios.get(`${BASE_TWELVE}&symbol=${encodeURIComponent(symbol)}`);
+        const res = await axios.get(`${API_CONFIG.TWELVE_DATA_BASE_URL}/price`, {
+          params: {
+            apikey: API_CONFIG.TWELVE_DATA_KEY,
+            symbol: symbol
+          },
+          timeout: 5000
+        });
         return {
           symbol,
           name: key,
@@ -53,5 +95,10 @@ export async function fetchDetailedMarketData(): Promise<MarketData[]> {
       }
     })
   );
+
+  // Cache the results
+  cache.set(cacheKey, results, 5 * 60 * 1000); // 5 minutes
+  persistentCache.set(cacheKey, results, 30 * 60 * 1000); // 30 minutes
+
   return results;
 }

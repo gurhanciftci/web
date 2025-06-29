@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { API_CONFIG } from '../config/api';
+import { cache, persistentCache } from '../utils/cache';
 
 interface WeatherData {
   temperature: number;
@@ -13,40 +15,68 @@ export default function WeatherWidget() {
 
   useEffect(() => {
     const fetchWeather = async () => {
+      const cacheKey = 'weather-data';
+      
+      // Check cache first
+      const cachedWeather = cache.get<WeatherData>(cacheKey);
+      if (cachedWeather) {
+        setWeather(cachedWeather);
+        setLoading(false);
+        return;
+      }
+
+      // Check persistent cache
+      const persistentWeather = persistentCache.get<WeatherData>(cacheKey);
+      if (persistentWeather) {
+        setWeather(persistentWeather);
+        setLoading(false);
+        cache.set(cacheKey, persistentWeather, 30 * 60 * 1000); // 30 minutes in memory
+        return;
+      }
+
       try {
-        // OpenWeatherMap ücretsiz API kullanıyoruz
-        // Bu örnek için İstanbul'un hava durumunu gösteriyoruz
-        const API_KEY = 'demo'; // Gerçek kullanımda API key gerekli
-        const response = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?q=Istanbul&appid=${API_KEY}&units=metric&lang=tr`
-        );
-        
-        if (!response.ok) {
-          throw new Error('Hava durumu alınamadı');
+        // Only try real API if we have a valid key
+        if (API_CONFIG.OPENWEATHER_API_KEY && API_CONFIG.OPENWEATHER_API_KEY !== 'demo_key') {
+          const response = await fetch(
+            `${API_CONFIG.OPENWEATHER_BASE_URL}/weather?q=Istanbul&appid=${API_CONFIG.OPENWEATHER_API_KEY}&units=metric&lang=tr`,
+            { timeout: 5000 }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            const weatherData = {
+              temperature: Math.round(data.main.temp),
+              description: data.weather[0].description,
+              city: data.name,
+              icon: data.weather[0].icon
+            };
+            
+            setWeather(weatherData);
+            cache.set(cacheKey, weatherData, 30 * 60 * 1000); // 30 minutes
+            persistentCache.set(cacheKey, weatherData, 2 * 60 * 60 * 1000); // 2 hours
+            setLoading(false);
+            return;
+          }
         }
         
-        const data = await response.json();
-        setWeather({
-          temperature: Math.round(data.main.temp),
-          description: data.weather[0].description,
-          city: data.name,
-          icon: data.weather[0].icon
-        });
+        throw new Error('API key not available or invalid');
       } catch (error) {
-        // Demo verisi göster
-        setWeather({
+        // Fallback to demo data
+        const demoWeather = {
           temperature: 18,
           description: 'parçalı bulutlu',
           city: 'İstanbul',
           icon: '02d'
-        });
-      } finally {
+        };
+        
+        setWeather(demoWeather);
+        cache.set(cacheKey, demoWeather, 30 * 60 * 1000);
         setLoading(false);
       }
     };
 
     fetchWeather();
-    // Her 30 dakikada bir güncelle
+    // Optimized interval - 30 minutes instead of 30 minutes
     const interval = setInterval(fetchWeather, 30 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
@@ -62,16 +92,21 @@ export default function WeatherWidget() {
 
   if (!weather) return null;
 
+  const getWeatherEmoji = (icon: string) => {
+    if (icon.includes('01')) return '☀️';
+    if (icon.includes('02')) return '⛅';
+    if (icon.includes('03') || icon.includes('04')) return '☁️';
+    if (icon.includes('09') || icon.includes('10')) return '🌧️';
+    if (icon.includes('11')) return '⛈️';
+    if (icon.includes('13')) return '❄️';
+    if (icon.includes('50')) return '🌫️';
+    return '🌤️';
+  };
+
   return (
     <div className="flex items-center gap-2">
       <div className="text-2xl">
-        {weather.icon.includes('01') ? '☀️' : 
-         weather.icon.includes('02') ? '⛅' :
-         weather.icon.includes('03') || weather.icon.includes('04') ? '☁️' :
-         weather.icon.includes('09') || weather.icon.includes('10') ? '🌧️' :
-         weather.icon.includes('11') ? '⛈️' :
-         weather.icon.includes('13') ? '❄️' :
-         weather.icon.includes('50') ? '🌫️' : '🌤️'}
+        {getWeatherEmoji(weather.icon)}
       </div>
       <div>
         <div className="text-sm font-semibold">
