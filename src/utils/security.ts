@@ -16,11 +16,16 @@ export function validateUrl(url: string): boolean {
 
 export function sanitizeNewsContent(content: string): string {
   // Remove potentially dangerous HTML tags and scripts
-  return content
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+\s*=/gi, '');
+  let previousContent;
+  do {
+    previousContent = content;
+    content = content
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+\s*=/gi, '');
+  } while (content !== previousContent);
+  return content;
 }
 
 // Rate limiting helper
